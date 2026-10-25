@@ -29,18 +29,25 @@ import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.TypedValue
+import android.view.Choreographer
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
 private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
+private const val SPRING_K = 260f
+private const val SPRING_C = 32.25f
+private const val STEP = 1f / 240f
 
 class AppItem(val label: String, val pkg: String, val intent: Intent, val icon: Bitmap)
 
@@ -57,46 +64,202 @@ class BarView(c: Context) : View(c) {
     }
 }
 
-class Pager(c: Context) : HorizontalScrollView(c) {
+class Pager(c: Context) : FrameLayout(c) {
+    lateinit var box: LinearLayout
     var pageW = 1
+    var count = 1
     var onPage: ((Int) -> Unit)? = null
-    private var startPage = 0
-    private var downX = 0f
-    private var last = -1
 
-    fun pages(): Int {
-        val w = getChildAt(0)?.width ?: pageW
-        return max(1, (w + pageW / 2) / pageW)
+    private var page = 0
+    private var shown = -1
+    private var startPage = 0
+    private var dragging = false
+    private var downX = 0f
+    private var downY = 0f
+    private var lastX = 0f
+    private var raw = 0f
+    private var vt: VelocityTracker? = null
+    private val slop = ViewConfiguration.get(c).scaledTouchSlop
+    private val flingV = c.resources.displayMetrics.density * 500f
+
+    private val choreo = Choreographer.getInstance()
+    private var animating = false
+    private var vel = 0f
+    private var target = 0f
+    private var lastNs = 0L
+
+    private val frame = object : Choreographer.FrameCallback {
+        override fun doFrame(ns: Long) {
+            if (!animating) return
+            val dt = if (lastNs == 0L) 1f / 60f
+            else ((ns - lastNs) / 1_000_000_000f).coerceIn(0.001f, 1f / 30f)
+            lastNs = ns
+            step(dt)
+            if (animating) choreo.postFrameCallback(this)
+        }
+    }
+
+    private fun step(dt: Float) {
+        var t = dt
+        var x = box.translationX
+        while (t > 0f) {
+            val h = if (t > STEP) STEP else t
+            val a = -SPRING_K * (x - target) - SPRING_C * vel
+            vel += a * h
+            x += vel * h
+            t -= h
+        }
+        box.translationX = x
+        if (abs(x - target) < 0.5f && abs(vel) < 8f) {
+            box.translationX = target
+            vel = 0f
+            animating = false
+        }
+    }
+
+    private fun startSpring(t: Int, v: Float) {
+        target = -(t * pageW).toFloat()
+        vel = v
+        if (abs(box.translationX - target) < 0.5f && abs(v) < 8f) {
+            box.translationX = target
+            vel = 0f
+            animating = false
+            return
+        }
+        if (!animating) {
+            animating = true
+            lastNs = 0L
+            choreo.postFrameCallback(frame)
+        }
+    }
+
+    private fun stopAnim() {
+        animating = false
+        choreo.removeFrameCallback(frame)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        stopAnim()
+    }
+
+    private fun report(p: Int) {
+        if (p != shown) {
+            shown = p
+            onPage?.invoke(p)
+        }
+    }
+
+    private fun rubber(x: Float): Float {
+        val min = -((count - 1) * pageW).toFloat()
+        return when {
+            x > 0f -> x * 0.35f
+            x < min -> min + (x - min) * 0.35f
+            else -> x
+        }
+    }
+
+    private fun unrubber(x: Float): Float {
+        val min = -((count - 1) * pageW).toFloat()
+        return when {
+            x > 0f -> x / 0.35f
+            x < min -> min + (x - min) / 0.35f
+            else -> x
+        }
+    }
+
+    fun reset() {
+        stopAnim()
+        dragging = false
+        box.translationX = 0f
+        page = 0
+        shown = -1
+        report(0)
     }
 
     fun goTo(p: Int) {
-        smoothScrollTo(p.coerceIn(0, pages() - 1) * pageW, 0)
+        val t = p.coerceIn(0, count - 1)
+        page = t
+        report(t)
+        startSpring(t, 0f)
     }
 
-    override fun fling(velocityX: Int) {}
+    private fun begin(x: Float) {
+        dragging = true
+        lastX = x
+        stopAnim()
+        raw = unrubber(box.translationX)
+        startPage = (-box.translationX / pageW).roundToInt().coerceIn(0, count - 1)
+        page = startPage
+        parent?.requestDisallowInterceptTouchEvent(true)
+    }
+
+    private fun release(up: Boolean) {
+        vt?.computeCurrentVelocity(1000)
+        var vx = if (up) (vt?.xVelocity ?: 0f) else 0f
+        vx = vx.coerceIn(-pageW * 8f, pageW * 8f)
+        val proj = raw + vx * 0.18f
+        var t = (-proj / pageW).roundToInt().coerceIn(startPage - 1, startPage + 1)
+        if (up && abs(vx) > flingV) {
+            t = if (vx < 0f) startPage + 1 else startPage - 1
+        }
+        t = t.coerceIn(0, count - 1)
+        dragging = false
+        page = t
+        report(t)
+        startSpring(t, vx)
+    }
+
+    override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                vt?.recycle()
+                vt = VelocityTracker.obtain()
+                vt?.addMovement(e)
+                downX = e.x
+                downY = e.y
+                if (animating) {
+                    begin(e.x)
+                    return true
+                }
+                dragging = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                vt?.addMovement(e)
+                if (!dragging) {
+                    val dx = e.x - downX
+                    val dy = e.y - downY
+                    if (abs(dx) > slop && abs(dx) > abs(dy)) begin(e.x)
+                }
+            }
+        }
+        return dragging
+    }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
-        if (e.actionMasked == MotionEvent.ACTION_DOWN) {
-            downX = e.rawX
-            startPage = (scrollX.toFloat() / pageW).roundToInt()
+        if (e.actionMasked != MotionEvent.ACTION_DOWN) vt?.addMovement(e)
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> return true
+            MotionEvent.ACTION_MOVE -> {
+                if (!dragging) {
+                    val dx = e.x - downX
+                    val dy = e.y - downY
+                    if (abs(dx) > slop && abs(dx) > abs(dy)) begin(e.x) else return true
+                }
+                val dx = e.x - lastX
+                lastX = e.x
+                raw += dx
+                val tx = rubber(raw)
+                box.translationX = tx
+                report((-tx / pageW).roundToInt().coerceIn(0, count - 1))
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (dragging) release(e.actionMasked == MotionEvent.ACTION_UP)
+                vt?.recycle()
+                vt = null
+            }
         }
-        val r = super.onTouchEvent(e)
-        if (e.actionMasked == MotionEvent.ACTION_UP || e.actionMasked == MotionEvent.ACTION_CANCEL) {
-            val d = downX - e.rawX
-            var t = startPage
-            if (d > pageW * 0.15f) t++ else if (d < -pageW * 0.15f) t--
-            goTo(t)
-        }
-        return r
-    }
-
-    override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int) {
-        super.onScrollChanged(l, t, oldl, oldt)
-        val p = (l.toFloat() / pageW).roundToInt()
-        if (p != last) {
-            last = p
-            onPage?.invoke(p)
-        }
+        return true
     }
 }
 
@@ -127,6 +290,15 @@ fun squircle(d: Drawable, px: Int): Bitmap {
     return bmp
 }
 
+fun toHw(b: Bitmap): Bitmap {
+    return try {
+        val h = b.copy(Bitmap.Config.HARDWARE, false)
+        if (h != null) { b.recycle(); h } else b
+    } catch (e: Exception) {
+        b
+    }
+}
+
 @Suppress("DEPRECATION")
 class MainActivity : Activity() {
 
@@ -145,7 +317,8 @@ class MainActivity : Activity() {
     private lateinit var batState: TextView
     private lateinit var batBar: BarView
     private var apps: List<AppItem> = emptyList()
-    private val iconCache = HashMap<String, Bitmap>()
+    private val iconCache = ConcurrentHashMap<String, Bitmap>()
+    private var loadGen = 0
     private var searchOpen = false
     private var dX = 0f
     private var dY = 0f
@@ -183,8 +356,30 @@ class MainActivity : Activity() {
 
         root = FrameLayout(this)
         setContentView(root)
+        preferHighRefresh()
         buildStatic()
         loadApps()
+    }
+
+    private fun preferHighRefresh() {
+        try {
+            val d = windowManager.defaultDisplay
+            val cur = d.mode
+            var best = cur
+            for (m in d.supportedModes) {
+                if (m.physicalWidth == cur.physicalWidth &&
+                    m.physicalHeight == cur.physicalHeight &&
+                    m.refreshRate > best.refreshRate) {
+                    best = m
+                }
+            }
+            if (best.modeId != cur.modeId) {
+                val lp = window.attributes
+                lp.preferredDisplayModeId = best.modeId
+                window.attributes = lp
+            }
+        } catch (e: Exception) {
+        }
     }
 
     override fun onStart() {
@@ -244,13 +439,11 @@ class MainActivity : Activity() {
 
     private fun buildStatic() {
         pager = Pager(this)
-        pager.isHorizontalScrollBarEnabled = false
-        pager.overScrollMode = View.OVER_SCROLL_NEVER
-        pager.isFillViewport = true
         pager.pageW = screenW
         pagesBox = LinearLayout(this)
         pagesBox.orientation = LinearLayout.HORIZONTAL
-        pager.addView(pagesBox, FrameLayout.LayoutParams(WRAP, MATCH))
+        pager.box = pagesBox
+        pager.addView(pagesBox, FrameLayout.LayoutParams(screenW, MATCH))
         pager.onPage = { updateDots(it) }
         root.addView(pager, FrameLayout.LayoutParams(MATCH, MATCH))
 
@@ -309,46 +502,51 @@ class MainActivity : Activity() {
     }
 
     private fun loadApps() {
+        val gen = ++loadGen
         val pm = packageManager
-        val q = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val px = dp(60)
-        val out = ArrayList<AppItem>()
-        for (ri in pm.queryIntentActivities(q, 0)) {
-            val pkg = ri.activityInfo.packageName
-            if (pkg == packageName) continue
-            val cls = ri.activityInfo.name
-            val icon = iconCache.getOrPut("$pkg/$cls") { squircle(ri.loadIcon(pm), px) }
-            val go = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-                .setComponent(ComponentName(pkg, cls))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-            out.add(AppItem(ri.loadLabel(pm).toString(), pkg, go, icon))
-        }
-        out.sortBy { it.label.lowercase() }
-        apps = out
-
-        val dockPkgs = ArrayList<String>()
-        fun pick(i: Intent) {
-            val r = pm.resolveActivity(i, PackageManager.MATCH_DEFAULT_ONLY)
-            val p = r?.activityInfo?.packageName
-            if (p != null && p != "android" && p != packageName &&
-                !dockPkgs.contains(p) && out.any { a -> a.pkg == p }) {
-                dockPkgs.add(p)
+        Thread {
+            val q = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+            val out = ArrayList<AppItem>()
+            for (ri in pm.queryIntentActivities(q, 0)) {
+                val pkg = ri.activityInfo.packageName
+                if (pkg == packageName) continue
+                val cls = ri.activityInfo.name
+                val icon = iconCache.getOrPut("$pkg/$cls") { toHw(squircle(ri.loadIcon(pm), px)) }
+                val go = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    .setComponent(ComponentName(pkg, cls))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                out.add(AppItem(ri.loadLabel(pm).toString(), pkg, go, icon))
             }
-        }
-        pick(Intent(Intent.ACTION_DIAL))
-        pick(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING))
-        pick(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_BROWSER))
-        pick(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
+            out.sortBy { it.label.lowercase() }
 
-        val dockApps = dockPkgs.map { p -> out.first { a -> a.pkg == p } }
-        val grid = out.filter { a -> !dockPkgs.contains(a.pkg) }
+            val dockPkgs = ArrayList<String>()
+            fun pick(i: Intent) {
+                val r = pm.resolveActivity(i, PackageManager.MATCH_DEFAULT_ONLY)
+                val p = r?.activityInfo?.packageName
+                if (p != null && p != "android" && p != packageName &&
+                    !dockPkgs.contains(p) && out.any { a -> a.pkg == p }) {
+                    dockPkgs.add(p)
+                }
+            }
+            pick(Intent(Intent.ACTION_DIAL))
+            pick(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING))
+            pick(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_BROWSER))
+            pick(Intent(MediaStore.ACTION_IMAGE_CAPTURE))
 
-        dock.removeAllViews()
-        for (a in dockApps) dock.addView(cell(a, false), LinearLayout.LayoutParams(0, WRAP, 1f))
-        renderPages(grid)
+            val dockApps = dockPkgs.map { p -> out.first { a -> a.pkg == p } }
+            val grid = out.filter { a -> !dockPkgs.contains(a.pkg) }
 
-        val sticky = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        if (sticky != null) updateBattery(sticky)
+            runOnUiThread {
+                if (gen != loadGen || isFinishing) return@runOnUiThread
+                apps = out
+                dock.removeAllViews()
+                for (a in dockApps) dock.addView(cell(a, false), LinearLayout.LayoutParams(0, WRAP, 1f))
+                renderPages(grid)
+                val sticky = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                if (sticky != null) updateBattery(sticky)
+            }
+        }.start()
     }
 
     private fun renderPages(grid: List<AppItem>) {
@@ -384,8 +582,10 @@ class MainActivity : Activity() {
             pagesBox.addView(page, LinearLayout.LayoutParams(screenW, MATCH))
             pageNo++
         }
+        pagesBox.layoutParams = FrameLayout.LayoutParams(screenW * pageNo, MATCH)
+        pager.count = pageNo
         buildDots(pageNo)
-        pager.scrollTo(0, 0)
+        pager.reset()
     }
 
     private fun widgetRow(size: Int): View {
