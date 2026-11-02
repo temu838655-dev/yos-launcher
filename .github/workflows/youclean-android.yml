@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p upstream/launcher/app/src/main/java/com/gathin/tvhome
           cp youclean/YouCleanManagerActivity.java upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanManagerActivity.java
+          cp youclean/YouCleanAdbGuideActivity.java upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanAdbGuideActivity.java
           python3 - <<'PY'
           from pathlib import Path
           p = Path("upstream/launcher/app/src/main/AndroidManifest.xml")
@@ -50,8 +51,23 @@ jobs:
           '''
           if ".YouCleanManagerActivity" not in s:
               s = s.replace('        <activity\n            android:name=".MainActivity"', activity + '\n        <activity\n            android:name=".MainActivity"', 1)
+          adb_activity = """
+                  <activity
+                      android:name=".YouCleanAdbGuideActivity"
+                      android:label="YouClean ADB Wi-Fi"
+                      android:exported="true"
+                      android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+          """
+          if ".YouCleanAdbGuideActivity" not in s:
+              s = s.replace('        <activity\n            android:name=".MainActivity"', adb_activity + '\n        <activity\n            android:name=".MainActivity"', 1)
           p.write_text(s)
           assert "YouCleanManagerActivity" in s
+          assert "YouCleanAdbGuideActivity" in s
           assert "QUERY_ALL_PACKAGES" in s
           PY
 
