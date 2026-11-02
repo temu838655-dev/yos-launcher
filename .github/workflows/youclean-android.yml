@@ -99,7 +99,7 @@ jobs:
           root = Path("build.gradle")
           s = root.read_text()
           if "org.jetbrains.kotlin.android" not in s:
-              s = s.replace("plugins {", "plugins {\n    id 'org.jetbrains.kotlin.android' version '2.0.21' apply false", 1)
+              s = s.replace("plugins {", "plugins {\n    id 'org.jetbrains.kotlin.android' version '2.4.21' apply false", 1)
           root.write_text(s)
           app = Path("app/build.gradle")
           s = app.read_text()
