@@ -27,6 +27,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.InputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * YouClean's first built-in app-management screen.
@@ -40,6 +43,7 @@ public final class YouCleanManagerActivity extends Activity {
     private TextView summary;
     private List<ApplicationInfo> applications = new ArrayList<>();
     private static final int CREATE_BACKUP_FILE = 7101;
+    private static final int OPEN_BACKUP_FILE = 7102;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -113,6 +117,14 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams backupLp = new LinearLayout.LayoutParams(-1, dp(48));
         backupLp.topMargin = dp(6);
         root.addView(backup, backupLp);
+
+        Button restore = new Button(this);
+        restore.setText("Nhập tệp sao lưu JSON · Kiểm tra ứng dụng thiếu");
+        restore.setTextSize(13);
+        restore.setOnClickListener(v -> openBackupFile());
+        LinearLayout.LayoutParams restoreLp = new LinearLayout.LayoutParams(-1, dp(48));
+        restoreLp.topMargin = dp(4);
+        root.addView(restore, restoreLp);
 
         summary = text("Đang tải danh sách...", 13, Color.LTGRAY);
         LinearLayout.LayoutParams summaryLp = new LinearLayout.LayoutParams(-1, -2);
@@ -217,8 +229,13 @@ public final class YouCleanManagerActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != CREATE_BACKUP_FILE || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
+        if (requestCode == OPEN_BACKUP_FILE) {
+            compareBackupFile(uri);
+            return;
+        }
+        if (requestCode != CREATE_BACKUP_FILE) return;
         try {
             JSONObject root = new JSONObject();
             root.put("format", "youclean-app-list");
@@ -243,6 +260,71 @@ public final class YouCleanManagerActivity extends Activity {
             summary.setText("Sao lưu thất bại: " + e.getMessage());
         }
     }
+
+    private void openBackupFile() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/json");
+            startActivityForResult(intent, OPEN_BACKUP_FILE);
+        } catch (Exception e) {
+            summary.setText("Không thể mở tệp sao lưu: " + e.getMessage());
+        }
+    }
+
+    private void compareBackupFile(Uri uri) {
+        try (InputStream in = getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new IllegalArgumentException("Không đọc được tệp đã chọn.");
+            StringBuilder content = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) content.append(line);
+            }
+            JSONObject backup = new JSONObject(content.toString());
+            if (!"youclean-app-list".equals(backup.optString("format"))
+                    || backup.optInt("version", -1) != 1) {
+                throw new IllegalArgumentException("Định dạng hoặc phiên bản tệp sao lưu không được hỗ trợ.");
+            }
+            JSONArray saved = backup.optJSONArray("applications");
+            if (saved == null) throw new IllegalArgumentException("Tệp không có danh sách ứng dụng hợp lệ.");
+
+            java.util.HashSet<String> installed = new java.util.HashSet<>();
+            for (ApplicationInfo app : applications) {
+                if (app.packageName != null) installed.add(app.packageName);
+            }
+            java.util.LinkedHashSet<String> missing = new java.util.LinkedHashSet<>();
+            for (int i = 0; i < saved.length(); i++) {
+                JSONObject item = saved.optJSONObject(i);
+                if (item == null) continue;
+                String pkg = item.optString("packageName", "").trim();
+                if (!pkg.isEmpty() && !installed.contains(pkg)) missing.add(pkg);
+            }
+
+            if (missing.isEmpty()) {
+                summary.setText("Đã kiểm tra " + saved.length()
+                        + " mục trong bản sao lưu: không phát hiện package nào bị thiếu. "
+                        + "Không có ứng dụng nào được cài đặt hoặc thay đổi.");
+            } else {
+                StringBuilder report = new StringBuilder();
+                report.append("Bản sao lưu: ").append(saved.length())
+                        .append(" mục · Đã cài: ").append(saved.length() - missing.size())
+                        .append(" · Còn thiếu: ").append(missing.size()).append("\n");
+                int count = 0;
+                for (String pkg : missing) {
+                    if (count++ == 30) {
+                        report.append("… và ").append(missing.size() - 30).append(" package khác");
+                        break;
+                    }
+                    report.append("• ").append(pkg).append("\n");
+                }
+                report.append("Chỉ đối chiếu danh sách; YouClean không tự cài APK, bật hoặc tắt ứng dụng.");
+                summary.setText(report.toString());
+            }
+        } catch (Exception e) {
+            summary.setText("Không thể đọc bản sao lưu: " + e.getMessage());
+        }
+    }
+
     private void openAppInfo(String packageName) {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
