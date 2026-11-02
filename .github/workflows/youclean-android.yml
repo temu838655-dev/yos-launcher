@@ -106,14 +106,19 @@ jobs:
           if "org.jetbrains.kotlin.android" not in s:
               s = s.replace("    id 'com.android.application'", "    id 'com.android.application'\n    id 'org.jetbrains.kotlin.android'", 1)
           if "adb-kt:v1.0.6" not in s:
-              s = s.replace("dependencies {", "dependencies {\n    implementation 'io.github.rhythmcache:adb-kt:1.0.0'", 1)
+              s = s.replace("dependencies {", "dependencies {\n    implementation 'com.github.rhythmcache:adb-kt:v1.0.6'", 1)
           app.write_text(s)
           settings = Path("settings.gradle")
           s = settings.read_text()
           if "jitpack.io" not in s:
-              s = s.replace("dependencyResolutionManagement {\\n    repositories {\\n        google()\\n        mavenCentral()",
-                             "dependencyResolutionManagement {\\n    repositories {\\n        google()\\n        mavenCentral()\\n        maven { url 'https://jitpack.io' }", 1)
+              import re
+              match = re.search(r"(dependencyResolutionManagement\\s*\\{[\\s\\S]*?repositories\\s*\\{)", s)
+              if not match:
+                  raise SystemExit("dependencyResolutionManagement.repositories block not found")
+              pos = match.end()
+              s = s[:pos] + "\\n        maven { url 'https://jitpack.io' }" + s[pos:]
           settings.write_text(s)
+          assert "jitpack.io" in s
           PY
 
       - name: Set up Java
