@@ -48,14 +48,20 @@ jobs:
           ./gradlew --no-daemon --stacktrace -PlauncherApplicationId=com.youclean.tvhome assembleRelease
           mkdir -p ../../dist
           cp app/build/outputs/apk/release/app-release.apk ../../dist/YouClean.apk
-          sha256sum ../../dist/YouClean.apk | tee ../../dist/SHA256SUMS.txt
 
-      - name: Upload APK artifact
+      - name: Package complete upstream source and device data
+        run: |
+          zip -qr ../dist/YouClean-upstream-source.zip . -x ".git/*"
+          cd ..
+          sha256sum dist/YouClean.apk dist/YouClean-upstream-source.zip | tee dist/SHA256SUMS.txt
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: YouClean-Android-TV
           path: |
             dist/YouClean.apk
+            dist/YouClean-upstream-source.zip
             dist/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
@@ -70,4 +76,5 @@ jobs:
           generate_release_notes: true
           files: |
             dist/YouClean.apk
+            dist/YouClean-upstream-source.zip
             dist/SHA256SUMS.txt
