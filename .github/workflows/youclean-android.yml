@@ -24,6 +24,37 @@ jobs:
           git clone --depth 1 https://github.com/Gathin23/cleanyourtv.git upstream
           echo "Upstream commit: $(git -C upstream rev-parse HEAD)"
 
+      - name: Add YouClean app manager screen
+        run: |
+          mkdir -p upstream/launcher/app/src/main/java/com/gathin/tvhome
+          cp youclean/YouCleanManagerActivity.java upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanManagerActivity.java
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("upstream/launcher/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          permission = '    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\\n'
+          if "android.permission.QUERY_ALL_PACKAGES" not in s:
+              s = s.replace('    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\\n',
+                            permission + '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\\n')
+          activity = '''
+                  <activity
+                      android:name=".YouCleanManagerActivity"
+                      android:label="YouClean Apps"
+                      android:exported="true"
+                      android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+          '''
+          if ".YouCleanManagerActivity" not in s:
+              s = s.replace('        <activity\\n            android:name=".MainActivity"', activity + '\\n        <activity\\n            android:name=".MainActivity"', 1)
+          p.write_text(s)
+          assert "YouCleanManagerActivity" in s
+          assert "QUERY_ALL_PACKAGES" in s
+          PY
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
