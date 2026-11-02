@@ -111,7 +111,8 @@ jobs:
           settings = Path("settings.gradle")
           s = settings.read_text()
           if "jitpack.io" not in s:
-              s = s.replace("        mavenCentral()", "        mavenCentral()\n        maven { url 'https://jitpack.io' }", 1)
+              s = s.replace("dependencyResolutionManagement {\\n    repositories {\\n        google()\\n        mavenCentral()",
+                             "dependencyResolutionManagement {\\n    repositories {\\n        google()\\n        mavenCentral()\\n        maven { url 'https://jitpack.io' }", 1)
           settings.write_text(s)
           PY
 
