@@ -32,10 +32,10 @@ jobs:
           from pathlib import Path
           p = Path("upstream/launcher/app/src/main/AndroidManifest.xml")
           s = p.read_text()
-          permission = '    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\\n'
+          permission = '    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n'
           if "android.permission.QUERY_ALL_PACKAGES" not in s:
-              s = s.replace('    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\\n',
-                            permission + '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\\n')
+              s = s.replace('    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n',
+                            permission + '    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n')
           activity = '''
                   <activity
                       android:name=".YouCleanManagerActivity"
@@ -49,7 +49,7 @@ jobs:
                   </activity>
           '''
           if ".YouCleanManagerActivity" not in s:
-              s = s.replace('        <activity\\n            android:name=".MainActivity"', activity + '\\n        <activity\\n            android:name=".MainActivity"', 1)
+              s = s.replace('        <activity\n            android:name=".MainActivity"', activity + '\n        <activity\n            android:name=".MainActivity"', 1)
           p.write_text(s)
           assert "YouCleanManagerActivity" in s
           assert "QUERY_ALL_PACKAGES" in s
