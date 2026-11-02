@@ -27,7 +27,7 @@ class YouCleanAdbWifiActivity : Activity() {
         text = value; textSize = size; setTextColor(Color.WHITE); setPadding(0, dp(5), 0, dp(5))
     }
     private fun field(hintText: String, input: Int = android.text.InputType.TYPE_CLASS_TEXT) = EditText(this).apply {
-        hint = hintText; hintTextColor = Color.LTGRAY; setTextColor(Color.WHITE); textSize = 17f
+        hint = hintText; setHintTextColor(Color.LTGRAY); setTextColor(Color.WHITE); textSize = 17f
         inputType = input; setSingleLine(true); setPadding(dp(12), dp(8), dp(12), dp(8))
         setBackgroundColor(Color.rgb(40, 49, 62))
     }
