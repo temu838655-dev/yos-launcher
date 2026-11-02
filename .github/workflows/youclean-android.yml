@@ -43,8 +43,6 @@ jobs:
 
       - name: Build release APK
         working-directory: upstream/launcher
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon --stacktrace -PlauncherApplicationId=com.youclean.tvhome assembleRelease
