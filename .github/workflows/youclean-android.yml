@@ -51,8 +51,7 @@ jobs:
 
       - name: Package complete upstream source and device data
         run: |
-          zip -qr ../dist/YouClean-upstream-source.zip . -x ".git/*"
-          cd ..
+          zip -qr dist/YouClean-upstream-source.zip upstream -x "upstream/.git/*"
           sha256sum dist/YouClean.apk dist/YouClean-upstream-source.zip | tee dist/SHA256SUMS.txt
 
       - name: Upload build artifacts
