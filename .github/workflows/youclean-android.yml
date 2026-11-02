@@ -111,13 +111,14 @@ jobs:
           settings = Path("settings.gradle")
           s = settings.read_text()
           if "jitpack.io" not in s:
-              import re
-              match = re.search(r"(dependencyResolutionManagement\\s*\\{[\\s\\S]*?repositories\\s*\\{)", s)
-              if not match:
+              block_start = s.find("dependencyResolutionManagement")
+              repo_start = s.find("repositories {", block_start)
+              if block_start < 0 or repo_start < 0:
                   raise SystemExit("dependencyResolutionManagement.repositories block not found")
-              pos = match.end()
-              s = s[:pos] + "\\n        maven { url 'https://jitpack.io' }" + s[pos:]
+              insert_at = repo_start + len("repositories {")
+              s = s[:insert_at] + chr(10) + "        maven { url 'https://jitpack.io' }" + s[insert_at:]
           settings.write_text(s)
+          assert "jitpack.io" in s
           assert "jitpack.io" in s
           PY
 
