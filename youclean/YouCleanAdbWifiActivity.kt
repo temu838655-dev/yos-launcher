@@ -43,7 +43,7 @@ class YouCleanAdbWifiActivity : Activity() {
             View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         val keyDir = File(filesDir, "adb-identity")
         keyDir.mkdirs()
-        keyProvider = FileKeyProvider(File(keyDir, "adbkey"), identityComment = "YouClean")
+        keyProvider = FileKeyProvider(File(keyDir, "adbkey"))
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
