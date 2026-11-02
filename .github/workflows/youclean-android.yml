@@ -2,7 +2,7 @@ name: YouClean Android TV
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/adb-wifi-prototype]
   workflow_dispatch:
 
 permissions:
@@ -29,6 +29,7 @@ jobs:
           mkdir -p upstream/launcher/app/src/main/java/com/gathin/tvhome
           cp youclean/YouCleanManagerActivity.java upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanManagerActivity.java
           cp youclean/YouCleanAdbGuideActivity.java upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanAdbGuideActivity.java
+          cp youclean/YouCleanAdbWifiActivity.kt upstream/launcher/app/src/main/java/com/gathin/tvhome/YouCleanAdbWifiActivity.kt
           python3 - <<'PY'
           from pathlib import Path
           p = Path("upstream/launcher/app/src/main/AndroidManifest.xml")
@@ -68,7 +69,50 @@ jobs:
           p.write_text(s)
           assert "YouCleanManagerActivity" in s
           assert "YouCleanAdbGuideActivity" in s
+          adb_wifi_activity = """
+                  <activity
+                      android:name=".YouCleanAdbWifiActivity"
+                      android:label="YouClean ADB Wi-Fi (thử nghiệm)"
+                      android:exported="true"
+                      android:screenOrientation="landscape">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+          """
+          if ".YouCleanAdbWifiActivity" not in s:
+              s = s.replace('        <activity\n            android:name=".MainActivity"', adb_wifi_activity + '\n        <activity\n            android:name=".MainActivity"', 1)
+          if "android.permission.INTERNET" not in s:
+              s = s.replace('    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n',
+                            '    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n')
+          assert "YouCleanAdbWifiActivity" in s
+          assert "android.permission.INTERNET" in s
           assert "QUERY_ALL_PACKAGES" in s
+          PY
+
+      - name: Enable Kotlin and ADB library for prototype
+        working-directory: upstream/launcher
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("build.gradle")
+          s = root.read_text()
+          if "org.jetbrains.kotlin.android" not in s:
+              s = s.replace("plugins {", "plugins {\n    id 'org.jetbrains.kotlin.android' version '2.0.21' apply false", 1)
+          root.write_text(s)
+          app = Path("app/build.gradle")
+          s = app.read_text()
+          if "org.jetbrains.kotlin.android" not in s:
+              s = s.replace("    id 'com.android.application'", "    id 'com.android.application'\n    id 'org.jetbrains.kotlin.android'", 1)
+          if "adb-kt:v1.0.6" not in s:
+              s = s.replace("dependencies {", "dependencies {\n    implementation 'com.github.rhythmcache:adb-kt:v1.0.6'", 1)
+          app.write_text(s)
+          settings = Path("settings.gradle")
+          s = settings.read_text()
+          if "jitpack.io" not in s:
+              s = s.replace("        mavenCentral()", "        mavenCentral()\n        maven { url 'https://jitpack.io' }", 1)
+          settings.write_text(s)
           PY
 
       - name: Set up Java
