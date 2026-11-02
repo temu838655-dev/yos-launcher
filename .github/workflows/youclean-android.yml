@@ -107,6 +107,8 @@ jobs:
               s = s.replace("    id 'com.android.application'", "    id 'com.android.application'\n    id 'org.jetbrains.kotlin.android'", 1)
           if "adb-kt:v1.0.6" not in s:
               s = s.replace("dependencies {", "dependencies {\n    implementation 'com.github.rhythmcache:adb-kt:v1.0.6'", 1)
+          if "kotlinx-coroutines-android" not in s:
+              s = s.replace("dependencies {", "dependencies {\n    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'", 1)
           app.write_text(s)
           settings = Path("settings.gradle")
           s = settings.read_text()
