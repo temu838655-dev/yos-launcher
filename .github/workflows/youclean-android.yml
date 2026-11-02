@@ -1,0 +1,75 @@
+name: YouClean Android TV
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: youclean-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout YouClean build configuration
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream CleanYourTV source
+        run: |
+          git clone --depth 1 https://github.com/Gathin23/cleanyourtv.git upstream
+          echo "Upstream commit: $(git -C upstream rev-parse HEAD)"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-34 build-tools;34.0.0'
+
+      - name: Prepare YouClean branding
+        working-directory: upstream/launcher
+        run: |
+          sed -i 's/<string name="app_name">Home<\/string>/<string name="app_name">YouClean<\/string>/' app/src/main/res/values/strings.xml
+          grep -q '<string name="app_name">YouClean</string>' app/src/main/res/values/strings.xml
+
+      - name: Build release APK
+        working-directory: upstream/launcher
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace -PlauncherApplicationId=com.youclean.tvhome assembleRelease
+          mkdir -p ../../dist
+          cp app/build/outputs/apk/release/app-release.apk ../../dist/YouClean.apk
+          sha256sum ../../dist/YouClean.apk | tee ../../dist/SHA256SUMS.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouClean-Android-TV
+          path: |
+            dist/YouClean.apk
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: youclean-build-${{ github.run_number }}
+          name: YouClean build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
+            dist/YouClean.apk
+            dist/SHA256SUMS.txt
