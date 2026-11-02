@@ -23,6 +23,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 
 /**
  * YouClean's first built-in app-management screen.
@@ -35,6 +39,7 @@ public final class YouCleanManagerActivity extends Activity {
     private LinearLayout list;
     private TextView summary;
     private List<ApplicationInfo> applications = new ArrayList<>();
+    private static final int CREATE_BACKUP_FILE = 7101;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -100,6 +105,14 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams filterLp = new LinearLayout.LayoutParams(-1, -2);
         filterLp.topMargin = dp(8);
         root.addView(filters, filterLp);
+
+        Button backup = new Button(this);
+        backup.setText("Sao lưu danh sách ứng dụng (JSON)");
+        backup.setTextSize(13);
+        backup.setOnClickListener(v -> createBackupFile());
+        LinearLayout.LayoutParams backupLp = new LinearLayout.LayoutParams(-1, dp(48));
+        backupLp.topMargin = dp(6);
+        root.addView(backup, backupLp);
 
         summary = text("Đang tải danh sách...", 13, Color.LTGRAY);
         LinearLayout.LayoutParams summaryLp = new LinearLayout.LayoutParams(-1, -2);
@@ -190,6 +203,46 @@ public final class YouCleanManagerActivity extends Activity {
         list.addView(row, lp);
     }
 
+    private void createBackupFile() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/json");
+            intent.putExtra(Intent.EXTRA_TITLE, "YouClean-app-list-backup.json");
+            startActivityForResult(intent, CREATE_BACKUP_FILE);
+        } catch (Exception e) {
+            summary.setText("Không thể tạo tệp sao lưu: " + e.getMessage());
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != CREATE_BACKUP_FILE || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        Uri uri = data.getData();
+        try {
+            JSONObject root = new JSONObject();
+            root.put("format", "youclean-app-list");
+            root.put("version", 1);
+            root.put("createdAt", System.currentTimeMillis());
+            JSONArray items = new JSONArray();
+            for (ApplicationInfo app : applications) {
+                JSONObject item = new JSONObject();
+                item.put("packageName", app.packageName == null ? "" : app.packageName);
+                item.put("label", String.valueOf(getPackageManager().getApplicationLabel(app)));
+                item.put("system", (app.flags & ApplicationInfo.FLAG_SYSTEM) != 0);
+                items.put(item);
+            }
+            root.put("applications", items);
+            try (OutputStream out = getContentResolver().openOutputStream(uri);
+                 OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8")) {
+                writer.write(root.toString(2));
+                writer.flush();
+            }
+            summary.setText("Đã sao lưu danh sách " + items.length() + " ứng dụng. Tệp chỉ lưu tên và package, không sao lưu dữ liệu riêng tư.");
+        } catch (Exception e) {
+            summary.setText("Sao lưu thất bại: " + e.getMessage());
+        }
+    }
     private void openAppInfo(String packageName) {
         try {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
