@@ -49,6 +49,7 @@ public final class YouCleanManagerActivity extends Activity {
     // Separate remote inventory: never mix TV package names with this device's PackageManager list.
     private List<String> remotePackages = new ArrayList<>();
     private boolean showingRemotePackages = false;
+    private String remoteInventoryInfo = "";
     private boolean resumedOnce = false;
     private int savedListScrollY = 0;
     private String focusedPackageBeforeRefresh = null;
@@ -428,11 +429,21 @@ public final class YouCleanManagerActivity extends Activity {
     }
 
     private void loadRemotePackages() {
-        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
-                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("youclean_adb", MODE_PRIVATE);
+        java.util.Set<String> saved = prefs.getStringSet(
+                "remote_packages", java.util.Collections.emptySet());
         remotePackages = new ArrayList<>(saved == null
                 ? java.util.Collections.emptySet() : saved);
         Collections.sort(remotePackages, String.CASE_INSENSITIVE_ORDER);
+        String ip = prefs.getString("remote_ip", "");
+        long savedAt = prefs.getLong("remote_saved_at", 0L);
+        String time = savedAt > 0L
+                ? android.text.format.DateFormat.format("dd/MM/yyyy HH:mm", savedAt).toString()
+                : "không rõ thời điểm";
+        remoteInventoryInfo = (ip == null || ip.trim().isEmpty()
+                ? "Không rõ IP TV" : "TV " + ip)
+                + " · đọc lúc " + time;
         showingRemotePackages = true;
         selectedFilter = ALL;
         renderApps();
@@ -510,8 +521,9 @@ public final class YouCleanManagerActivity extends Activity {
                 shown++;
                 addRemotePackageRow(pkg);
             }
-            summary.setText("TV từ xa · Hiển thị " + shown + " / " + total
-                    + " package đã đọc qua ADB · chỉ xem, không thao tác package");
+            summary.setText("DỮ LIỆU ĐÃ LƯU · " + remoteInventoryInfo
+                    + "\nHiển thị " + shown + " / " + total
+                    + " package trong lần đọc ADB gần nhất. Đây không phải trạng thái kết nối trực tiếp; chỉ xem, không thao tác package.");
         } else {
             for (ApplicationInfo app : applications) {
                 boolean system = (app.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
