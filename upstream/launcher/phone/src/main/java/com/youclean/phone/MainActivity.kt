@@ -284,8 +284,15 @@ class MainActivity : Activity() {
                             .filter { it.startsWith("package:") }
                             .map { it.removePrefix("package:").trim() }
                             .filter { it.isNotEmpty() }
+                            .distinct()
                             .toList()
                         buildString {
+                            appendLine("Số tệp APK: " + paths.size)
+                            appendLine("Kiểu cài đặt: " + when {
+                                paths.size > 1 -> "Nhiều APK / split package"
+                                paths.size == 1 -> "Một APK hoặc base APK"
+                                else -> "Không xác định"
+                            })
                             appendLine("Tên phiên bản: " + value("^\\s*versionName=([^\\r\\n]+)"))
                             appendLine("Mã phiên bản: " + value("^\\s*versionCode=([^\\s]+)"))
                             appendLine("UID ứng dụng: " + value("^\\s*(?:userId|appId)=([^\\s]+)"))
