@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var packagesView: TextView
     private lateinit var keyProvider: FileKeyProvider
     private var packageRows: List<String> = emptyList()
+    private var showingAllPackages = false
     private var busy = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density + .5f).toInt()
@@ -65,7 +66,8 @@ class MainActivity : Activity() {
             root.addView(edit, LinearLayout.LayoutParams(-1, dp(52)))
         }
         root.addView(action("Ghép đôi với TV") { pair() }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(12) })
-        root.addView(action("Kết nối và quét ứng dụng trên TV") { connectAndList() }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
+        root.addView(action("Kết nối và quét ứng dụng người dùng") { connectAndList(false) }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
+        root.addView(action("Quét tất cả ứng dụng (kể cả hệ thống)") { connectAndList(true) }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
         status = label("Chưa kết nối TV.", 14f, Color.rgb(255, 210, 140))
         root.addView(status.apply { setPadding(0, dp(12), 0, dp(8)) })
         root.addView(label("Danh sách ứng dụng", 18f).apply { setTypeface(null, 1); setPadding(0, dp(8), 0, dp(6)) })
@@ -81,7 +83,7 @@ class MainActivity : Activity() {
         root.addView(packagesView)
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
-            packageSearch.text.clear(); packageRows = emptyList()
+            packageSearch.text.clear(); packageRows = emptyList(); showingAllPackages = false
             packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
@@ -93,7 +95,7 @@ class MainActivity : Activity() {
         packagesView.text = when {
             packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng."
             filtered.isEmpty() -> "Không tìm thấy package phù hợp."
-            else -> "Hiển thị ${filtered.size}/${packageRows.size} ứng dụng người dùng:\n" +
+            else -> "Hiển thị ${filtered.size}/${packageRows.size} ${if (showingAllPackages) "package (gồm ứng dụng hệ thống)" else "ứng dụng người dùng"}:\n" +
                 filtered.mapIndexed { index, name -> "${index + 1}. $name" }.joinToString("\n")
         }
     }
@@ -119,20 +121,23 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun connectAndList() {
+    private fun connectAndList(includeSystem: Boolean) {
         val host = ip.text.toString().trim()
         val p = port(connectPort.text.toString())
         if (host.isBlank() || p == null) { status("Nhập IP TV và cổng Wireless debugging hợp lệ."); return }
-        setBusy(true, "Đang kết nối và đọc danh sách package…")
+        showingAllPackages = includeSystem
+        setBusy(true, if (includeSystem) "Đang đọc toàn bộ package trên TV…" else "Đang đọc ứng dụng người dùng…")
         scope.launch {
             try {
+                val command = if (includeSystem) "pm list packages" else "pm list packages -3"
                 val output = withContext(Dispatchers.IO) {
-                    AdbClient.connectTls(host, p, keyProvider).use { it.shell("pm list packages -3").stdoutText }
+                    AdbClient.connectTls(host, p, keyProvider).use { it.shell(command).stdoutText }
                 }
                 packageRows = output.lineSequence().filter { it.startsWith("package:") }
                     .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.distinct().sorted().toList()
                 renderPackages()
-                status("Đã kết nối. Tìm thấy ${packageRows.size} ứng dụng người dùng. Chế độ hiện tại chỉ đọc dữ liệu.")
+                val kind = if (includeSystem) "package tổng cộng (có cả package hệ thống)" else "ứng dụng người dùng"
+                status("Đã kết nối. Đọc được ${packageRows.size} $kind. Chỉ đọc dữ liệu, chưa thay đổi ứng dụng trên TV.")
             } catch (e: Exception) { status("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) + ". Kiểm tra lại IP, cổng và trạng thái ghép đôi.") }
             finally { busy = false }
         }
