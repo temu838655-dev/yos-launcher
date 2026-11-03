@@ -105,7 +105,7 @@ class MainActivity : Activity() {
         val query = packageSearch.text.toString().trim()
         val filtered = packageRows.filter { it.contains(query, ignoreCase = true) }
         packagesView.text = when {
-            packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng."
+            packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package; chưa có thao tác tắt hoặc gỡ ứng dụng."
             filtered.isEmpty() -> "Không tìm thấy package phù hợp."
             else -> {
                 val userCount = packageRows.count { it !in systemPackages }
@@ -115,7 +115,6 @@ class MainActivity : Activity() {
                 "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\\n" +
                     "Cốt lõi cần giữ: $protectedCount | Chưa đánh giá: $unreviewedCount\\n" +
                     "Phân loại chỉ mang tính nhận diện, KHÔNG có nghĩa package chưa đánh giá là an toàn để tắt.\\n" +
-                    "Nhấn giữ để chọn và sao chép mã package.\\n" +
                     filtered.mapIndexed { index, name ->
                         val type = when {
                             name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
