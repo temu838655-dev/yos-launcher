@@ -108,7 +108,7 @@ class MainActivity : Activity() {
         root.addView(packageSearch, LinearLayout.LayoutParams(-1, dp(48)))
         packageFilter = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
-                listOf("Tất cả package", "Ứng dụng người dùng", "Package hệ thống", "Package đã nhận diện cần giữ"))
+                listOf("Tất cả package", "Ứng dụng người dùng", "Package hệ thống", "Package đã nhận diện cần giữ", "Package chưa đánh giá"))
             onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { renderPackages() }
@@ -183,6 +183,7 @@ class MainActivity : Activity() {
                 1 -> name !in systemPackages
                 2 -> name in systemPackages
                 3 -> name in protectedPackages
+                4 -> name !in protectedPackages
                 else -> true
             }
             matchesQuery && matchesFilter
@@ -220,6 +221,7 @@ class MainActivity : Activity() {
                 1 -> name !in systemPackages
                 2 -> name in systemPackages
                 3 -> name in protectedPackages
+                4 -> name !in protectedPackages
                 else -> true
             }
             matchesQuery && matchesFilter
