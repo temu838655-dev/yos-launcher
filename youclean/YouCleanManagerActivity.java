@@ -60,6 +60,7 @@ public final class YouCleanManagerActivity extends Activity {
     private static final int CREATE_BACKUP_FILE = 7101;
     private static final int OPEN_BACKUP_FILE = 7102;
     private static final int EXPORT_REMOTE_PACKAGES_FILE = 7103;
+    private static final int EXPORT_REMOTE_PACKAGES_JSON_FILE = 7104;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -201,6 +202,15 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams exportRemoteLp = new LinearLayout.LayoutParams(-1, dp(42));
         exportRemoteLp.topMargin = dp(4);
         root.addView(exportRemotePackages, exportRemoteLp);
+
+        Button exportRemotePackagesJson = new Button(this);
+        exportRemotePackagesJson.setText("Xuất bản sao package TV thành JSON");
+        exportRemotePackagesJson.setTextSize(13);
+        applyTvFocusFeedback(exportRemotePackagesJson);
+        exportRemotePackagesJson.setOnClickListener(v -> createRemotePackagesJsonFile());
+        LinearLayout.LayoutParams exportRemoteJsonLp = new LinearLayout.LayoutParams(-1, dp(42));
+        exportRemoteJsonLp.topMargin = dp(4);
+        root.addView(exportRemotePackagesJson, exportRemoteJsonLp);
 
         Button refresh = new Button(this);
         refresh.setText("Làm mới danh sách ứng dụng");
@@ -780,6 +790,62 @@ public final class YouCleanManagerActivity extends Activity {
         }
     }
 
+    private void createRemotePackagesJsonFile() {
+        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        if (saved == null || saved.isEmpty()) {
+            Toast.makeText(this, "Chưa có danh sách package TV đã lưu. Hãy đọc TV qua ADB trước.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/json");
+            intent.putExtra(Intent.EXTRA_TITLE, "YouClean-TV-packages.json");
+            startActivityForResult(intent, EXPORT_REMOTE_PACKAGES_JSON_FILE);
+        } catch (Exception e) {
+            summary.setText("Không thể tạo tệp JSON package TV: " + e.getMessage());
+        }
+    }
+
+    private void exportRemotePackagesToJson(Uri uri) {
+        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        ArrayList<String> sorted = new ArrayList<>(saved == null
+                ? java.util.Collections.emptySet() : saved);
+        Collections.sort(sorted, String.CASE_INSENSITIVE_ORDER);
+        if (sorted.isEmpty()) {
+            summary.setText("Không có package TV đã lưu để xuất.");
+            return;
+        }
+        android.content.SharedPreferences prefs = getSharedPreferences("youclean_adb", MODE_PRIVATE);
+        JSONObject root = new JSONObject();
+        try {
+            root.put("format", "youclean-tv-package-inventory");
+            root.put("version", 1);
+            root.put("deviceIp", prefs.getString("remote_ip", ""));
+            root.put("savedAt", prefs.getLong("remote_saved_at", 0L));
+            root.put("exportedAt", System.currentTimeMillis());
+            root.put("packageCount", sorted.size());
+            root.put("readOnlySnapshot", true);
+            JSONArray packages = new JSONArray();
+            for (String pkg : sorted) packages.put(pkg);
+            root.put("packages", packages);
+            OutputStream out = getContentResolver().openOutputStream(uri);
+            if (out == null) throw new IllegalStateException("Không mở được tệp đã chọn.");
+            try (OutputStream stream = out;
+                 OutputStreamWriter writer = new OutputStreamWriter(stream, "UTF-8")) {
+                writer.write(root.toString(2));
+                writer.flush();
+            }
+            summary.setText("Đã xuất bản sao JSON gồm " + sorted.size()
+                    + " package TV. Tệp chỉ chứa danh sách đã lưu, không chứa dữ liệu ứng dụng.");
+        } catch (Exception e) {
+            summary.setText("Xuất JSON package TV thất bại: " + e.getMessage());
+        }
+    }
+
     private void exportRemotePackagesToText(Uri uri) {
         java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
                 .getStringSet("remote_packages", java.util.Collections.emptySet());
@@ -838,6 +904,10 @@ public final class YouCleanManagerActivity extends Activity {
         }
         if (requestCode == EXPORT_REMOTE_PACKAGES_FILE) {
             exportRemotePackagesToText(uri);
+            return;
+        }
+        if (requestCode == EXPORT_REMOTE_PACKAGES_JSON_FILE) {
+            exportRemotePackagesToJson(uri);
             return;
         }
         if (requestCode != CREATE_BACKUP_FILE) return;
