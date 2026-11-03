@@ -919,6 +919,10 @@ public final class YouCleanManagerActivity extends Activity {
             root.put("format", "youclean-app-list");
             root.put("version", 1);
             root.put("createdAt", System.currentTimeMillis());
+            root.put("deviceManufacturer", safeBuildValue(Build.MANUFACTURER));
+            root.put("deviceModel", safeBuildValue(Build.MODEL));
+            root.put("androidVersion", safeBuildValue(Build.VERSION.RELEASE));
+            root.put("androidSdk", Build.VERSION.SDK_INT);
             JSONArray items = new JSONArray();
             for (ApplicationInfo app : applications) {
                 JSONObject item = new JSONObject();
@@ -1026,8 +1030,10 @@ public final class YouCleanManagerActivity extends Activity {
             int installedCount = uniqueSaved.size() - missing.size();
 
             String backupTime = backupCreatedAtLabel(backup);
+            String backupDevice = backupDeviceLabel(backup);
             if (missing.isEmpty()) {
-                summary.setText(backupTime + "\nĐã đối chiếu " + uniqueSaved.size()
+                summary.setText(backupTime + "\n" + backupDevice
+                        + "\nĐã đối chiếu " + uniqueSaved.size()
                         + " package hợp lệ: không phát hiện package nào bị thiếu. "
                         + (invalidEntries > 0 ? "Mục lỗi: " + invalidEntries + ". " : "")
                         + (duplicateEntries > 0 ? "Mục trùng lặp: " + duplicateEntries + ". " : "")
@@ -1035,6 +1041,7 @@ public final class YouCleanManagerActivity extends Activity {
             } else {
                 StringBuilder report = new StringBuilder();
                 report.append(backupTime).append("\n");
+                report.append(backupDevice).append("\n");
                 report.append("Bản sao lưu: ").append(uniqueSaved.size())
                         .append(" package hợp lệ · Đã cài: ").append(installedCount)
                         .append(" · Còn thiếu: ").append(missing.size());
@@ -1059,6 +1066,31 @@ public final class YouCleanManagerActivity extends Activity {
         } catch (Exception e) {
             summary.setText("Không thể đọc bản sao lưu: " + e.getMessage());
         }
+    }
+
+    /** Show optional source-device metadata from newer backup files. */
+    private String backupDeviceLabel(JSONObject backup) {
+        Object manufacturerValue = backup.opt("deviceManufacturer");
+        Object modelValue = backup.opt("deviceModel");
+        Object androidValue = backup.opt("androidVersion");
+        String manufacturer = manufacturerValue instanceof String
+                ? ((String) manufacturerValue).trim() : "";
+        String model = modelValue instanceof String ? ((String) modelValue).trim() : "";
+        String android = androidValue instanceof String ? ((String) androidValue).trim() : "";
+        StringBuilder label = new StringBuilder("Thiết bị sao lưu: ");
+        if (manufacturer.isEmpty() && model.isEmpty()) {
+            label.append("không có thông tin");
+        } else {
+            if (!manufacturer.isEmpty()) label.append(manufacturer);
+            if (!manufacturer.isEmpty() && !model.isEmpty()) label.append(" / ");
+            if (!model.isEmpty()) label.append(model);
+        }
+        if (!android.isEmpty()) label.append(" · Android ").append(android);
+        Object sdkValue = backup.opt("androidSdk");
+        if (sdkValue instanceof Number && ((Number) sdkValue).intValue() > 0) {
+            label.append(" (API ").append(((Number) sdkValue).intValue()).append(")");
+        }
+        return label.toString();
     }
 
     /** Show the optional creation timestamp so users can identify an imported backup. */
