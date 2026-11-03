@@ -25,6 +25,16 @@ class MainActivity : Activity() {
     private lateinit var keyProvider: FileKeyProvider
     private var packageRows: List<String> = emptyList()
     private var systemPackages: Set<String> = emptySet()
+    private val protectedPackages = setOf(
+        "android",
+        "com.android.systemui",
+        "com.android.settings",
+        "com.android.packageinstaller",
+        "com.google.android.gms",
+        "com.google.android.gsf",
+        "com.google.android.permissioncontroller",
+        "com.android.permissioncontroller"
+    )
     private var showingAllPackages = false
     private var busy = false
 
@@ -99,9 +109,15 @@ class MainActivity : Activity() {
             else -> {
                 val userCount = packageRows.count { it !in systemPackages }
                 val systemCount = packageRows.size - userCount
-                "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\n" +
+                val protectedCount = packageRows.count { it in protectedPackages }
+                "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount | Cốt lõi: $protectedCount\n" +
+                    "Package cốt lõi được nhận diện cần giữ lại.\n" +
                     filtered.mapIndexed { index, name ->
-                        val type = if (name in systemPackages) "[HỆ THỐNG]" else "[NGƯỜI DÙNG]"
+                        val type = when {
+                            name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
+                            name in systemPackages -> "[HỆ THỐNG]"
+                            else -> "[NGƯỜI DÙNG]"
+                        }
                         "${index + 1}. $type $name"
                     }.joinToString("\n")
             }
