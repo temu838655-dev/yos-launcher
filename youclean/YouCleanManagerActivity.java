@@ -104,6 +104,7 @@ public final class YouCleanManagerActivity extends Activity {
         Button modelLookup = new Button(this);
         modelLookup.setText("Tra cứu hồ sơ TV từ CleanYourTV");
         modelLookup.setTextSize(13);
+        applyTvFocusFeedback(modelLookup);
         modelLookup.setOnClickListener(v -> showModelMatches());
         LinearLayout.LayoutParams modelLookupLp = new LinearLayout.LayoutParams(-1, dp(44));
         modelLookupLp.topMargin = dp(5);
@@ -111,6 +112,8 @@ public final class YouCleanManagerActivity extends Activity {
 
         EditText search = new EditText(this);
         search.setSingleLine(true);
+        search.setFocusable(true);
+        search.setFocusableInTouchMode(true);
         search.setTextColor(Color.WHITE);
         search.setHintTextColor(Color.GRAY);
         search.setHint("Tìm theo tên hoặc package...");
@@ -143,6 +146,7 @@ public final class YouCleanManagerActivity extends Activity {
         Button refresh = new Button(this);
         refresh.setText("Làm mới danh sách ứng dụng");
         refresh.setTextSize(13);
+        applyTvFocusFeedback(refresh);
         refresh.setOnClickListener(v -> {
             summary.setText("Đang cập nhật danh sách ứng dụng...");
             loadApps();
@@ -191,6 +195,17 @@ public final class YouCleanManagerActivity extends Activity {
         root.addView(scroll, scrollLp);
 
         setContentView(root);
+    }
+
+    /** Consistent visible focus feedback for TV remotes and keyboards. */
+    private void applyTvFocusFeedback(View view) {
+        view.setFocusable(true);
+        view.setClickable(true);
+        view.setOnFocusChangeListener((v, focused) -> {
+            v.setAlpha(focused ? 1.0f : 0.92f);
+            v.setScaleX(focused ? 1.025f : 1.0f);
+            v.setScaleY(focused ? 1.025f : 1.0f);
+        });
     }
 
     private void addFilter(LinearLayout parent, String label, int filter) {
