@@ -18,14 +18,14 @@ if "YouClean · Quản lý ứng dụng và sao lưu" not in text:
         managerEntry.setTextSize(18);
         managerEntry.setFocusable(true);
         managerEntry.setClickable(true);
-        managerEntry.setPadding(24, 22, 24, 22);
+        managerEntry.setPadding((int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f));
         managerEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
         managerEntry.setOnFocusChangeListener((v, focused) ->
                 v.setBackgroundColor(focused ? android.graphics.Color.rgb(58, 92, 130)
                         : android.graphics.Color.rgb(35, 45, 58)));
         android.widget.LinearLayout.LayoutParams managerParams =
                 new android.widget.LinearLayout.LayoutParams(-1, -2);
-        managerParams.topMargin = 20;
+        managerParams.topMargin = (int) (12 * getResources().getDisplayMetrics().density + 0.5f);
         settingsRoot.addView(managerEntry, managerParams);
         managerEntry.setOnClickListener(v ->
                 open(new Intent(this, YouCleanManagerActivity.class)));
@@ -36,14 +36,14 @@ if "YouClean · Quản lý ứng dụng và sao lưu" not in text:
         adbEntry.setTextSize(18);
         adbEntry.setFocusable(true);
         adbEntry.setClickable(true);
-        adbEntry.setPadding(24, 22, 24, 22);
+        adbEntry.setPadding((int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f), (int) (18 * getResources().getDisplayMetrics().density + 0.5f));
         adbEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
         adbEntry.setOnFocusChangeListener((v, focused) ->
                 v.setBackgroundColor(focused ? android.graphics.Color.rgb(58, 92, 130)
                         : android.graphics.Color.rgb(35, 45, 58)));
         android.widget.LinearLayout.LayoutParams adbParams =
                 new android.widget.LinearLayout.LayoutParams(-1, -2);
-        adbParams.topMargin = 10;
+        adbParams.topMargin = (int) (8 * getResources().getDisplayMetrics().density + 0.5f);
         settingsRoot.addView(adbEntry, adbParams);
         adbEntry.setOnClickListener(v -> new AlertDialog.Builder(this)
                 .setTitle("YouClean · ADB Wi-Fi")
