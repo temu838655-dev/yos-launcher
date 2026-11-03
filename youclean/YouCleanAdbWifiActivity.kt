@@ -67,6 +67,25 @@ class YouCleanAdbWifiActivity : Activity() {
     private fun validIp(value: String): Boolean =
         value.isNotBlank() && android.util.Patterns.IP_ADDRESS.matcher(value).matches()
 
+    /** Translate common network/TLS failures into actionable Wi-Fi ADB guidance. */
+    private fun adbErrorMessage(action: String, error: Throwable): String {
+        val detail = error.message ?: error.javaClass.simpleName
+        val lower = detail.lowercase()
+        val guidance = when {
+            lower.contains("refused") || lower.contains("econnrefused") ->
+                "TV đã từ chối cổng. Mở Wireless debugging trên TV và nhập lại đúng cổng hiện tại; cổng ghép đôi và cổng kết nối là hai cổng riêng."
+            lower.contains("timeout") || lower.contains("timed out") ||
+                lower.contains("unreachable") || lower.contains("no route") ->
+                "Không tới được TV. Kiểm tra hai thiết bị cùng Wi-Fi, tắt VPN nếu đang dùng, kiểm tra IP TV và tránh mạng khách có chặn thiết bị nội bộ."
+            lower.contains("auth") || lower.contains("unauthorized") ||
+                lower.contains("pair") || lower.contains("tls") ->
+                "Xác nhận TV đã ghép đôi với khóa YouClean này. Nếu mã hết hạn hoặc TV đã quên thiết bị, hãy ghép đôi lại bằng mã mới."
+            else ->
+                "Kiểm tra Wireless debugging còn bật, IP TV chưa đổi và cổng đang hiển thị trên TV."
+        }
+        return "$action thất bại: $detail\\n$guidance"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
@@ -157,12 +176,12 @@ class YouCleanAdbWifiActivity : Activity() {
                         .apply()
                     setStatus("Ghép đôi thành công với " + ip + ". Mở lại Wireless debugging trên TV, nhập cổng kết nối đang hiển thị rồi bấm bước 2.")
                 } else {
-                    setStatus("Ghép đôi thất bại: " + (result.exceptionOrNull()?.message ?: "TV từ chối hoặc mã đã hết hạn"))
+                    setStatus(adbErrorMessage("Ghép đôi", result.exceptionOrNull() ?: IllegalStateException("TV từ chối hoặc mã đã hết hạn")))
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                setStatus("Lỗi ghép đôi: " + (e.message ?: e.javaClass.simpleName))
+                setStatus(adbErrorMessage("Ghép đôi", e))
             } finally {
                 setBusy(false)
             }
@@ -207,8 +226,7 @@ class YouCleanAdbWifiActivity : Activity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                setStatus("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) +
-                    ". Kiểm tra lại cổng kết nối và ghép đôi.")
+                setStatus(adbErrorMessage("Kết nối ADB", e))
             } finally {
                 setBusy(false)
             }
