@@ -36,10 +36,6 @@ for tv_file in sorted(ROOT.glob("*/tv.json")):
         if match and not build:
             build = match.group(1).rstrip(".,")
     packages = []
-    for line in header.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
     if debloat.exists():
         for line in debloat.read_text(encoding="utf-8", errors="replace").splitlines():
             line = line.strip()
@@ -56,6 +52,7 @@ for tv_file in sorted(ROOT.glob("*/tv.json")):
         "notes": data.get("notes", ""),
         "fingerprint": fingerprint,
         "build": build,
+        "properties": properties,
         "debloatPackageCount": len(packages),
         "source": f"upstream/examples/{folder.name}/",
     })
