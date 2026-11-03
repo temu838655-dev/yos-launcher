@@ -104,6 +104,19 @@ class YouCleanAdbWifiActivity : Activity() {
         connectPort.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { pairingCode.clearFocus(); true } else false
         }
+        // Restore the last successfully used TV address and ports. No discovery scan is started.
+        val saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+        host.setText(saved.getString("remote_ip", saved.getString("last_ip", "")) ?: "")
+        pairingPort.setText(saved.getString("last_pairing_port", "") ?: "")
+        connectPort.setText(saved.getString("last_connect_port", "") ?: "")
+        val lastSavedAt = saved.getLong("remote_saved_at", 0L)
+        val lastIp = saved.getString("remote_ip", null)
+        val rememberedHint = if (!lastIp.isNullOrBlank() && lastSavedAt > 0L) {
+            "TV đã đọc gần nhất: " + lastIp + " · " + android.text.format.DateFormat.format("dd/MM/yyyy HH:mm", lastSavedAt) + ". Kiểm tra TV còn cùng IP/cổng trước khi kết nối lại."
+        } else {
+            "Chưa lưu TV nào. Nhập IP và cổng hiển thị trong Wireless debugging."
+        }
+
         listOf("IP của TV" to host, "Cổng ghép đôi" to pairingPort, "Mã ghép đôi" to pairingCode,
             "Cổng kết nối" to connectPort).forEach { (caption, edit) ->
             root.addView(label(caption, 14f))
@@ -113,7 +126,7 @@ class YouCleanAdbWifiActivity : Activity() {
         connectButton = button("2. Kết nối ADB và đọc toàn bộ ứng dụng") { connectAndList() }
         root.addView(pairButton)
         root.addView(connectButton)
-        status = label("Chưa kết nối. Chưa có lệnh nào được gửi tới TV.", 15f)
+        status = label(rememberedHint + "\nChưa có phiên ADB đang hoạt động.", 15f)
         root.addView(status)
         root.addView(label("Cổng ghép đôi và cổng kết nối là hai cổng khác nhau. Khóa ADB được lưu trong vùng riêng của YouClean. Bản thử nghiệm chỉ đọc danh sách package; không vô hiệu hóa hay gỡ ứng dụng.", 13f))
         setContentView(ScrollView(this).apply { addView(root) })
@@ -138,7 +151,11 @@ class YouCleanAdbWifiActivity : Activity() {
             try {
                 val result = withContext(Dispatchers.IO) { AdbClient.pairTls(ip, port, code, keyProvider) }
                 if (result.isSuccess) {
-                    setStatus("Ghép đôi thành công. Mở lại Wireless debugging trên TV, nhập cổng kết nối đang hiển thị rồi bấm bước 2.")
+                    getSharedPreferences("youclean_adb", MODE_PRIVATE).edit()
+                        .putString("last_ip", ip)
+                        .putString("last_pairing_port", port.toString())
+                        .apply()
+                    setStatus("Ghép đôi thành công với " + ip + ". Mở lại Wireless debugging trên TV, nhập cổng kết nối đang hiển thị rồi bấm bước 2.")
                 } else {
                     setStatus("Ghép đôi thất bại: " + (result.exceptionOrNull()?.message ?: "TV từ chối hoặc mã đã hết hạn"))
                 }
@@ -180,6 +197,8 @@ class YouCleanAdbWifiActivity : Activity() {
                     .toList()
                 getSharedPreferences("youclean_adb", MODE_PRIVATE).edit()
                     .putString("remote_ip", ip)
+                    .putString("last_ip", ip)
+                    .putString("last_connect_port", port.toString())
                     .putStringSet("remote_packages", HashSet(packages))
                     .putLong("remote_saved_at", System.currentTimeMillis())
                     .apply()
