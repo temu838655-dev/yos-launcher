@@ -1027,14 +1027,14 @@ public final class YouCleanManagerActivity extends Activity {
 
             String backupTime = backupCreatedAtLabel(backup);
             if (missing.isEmpty()) {
-                summary.setText(backupTime + "\\nĐã đối chiếu " + uniqueSaved.size()
+                summary.setText(backupTime + "\nĐã đối chiếu " + uniqueSaved.size()
                         + " package hợp lệ: không phát hiện package nào bị thiếu. "
                         + (invalidEntries > 0 ? "Mục lỗi: " + invalidEntries + ". " : "")
                         + (duplicateEntries > 0 ? "Mục trùng lặp: " + duplicateEntries + ". " : "")
                         + "Không có ứng dụng nào được cài đặt hoặc thay đổi.");
             } else {
                 StringBuilder report = new StringBuilder();
-                report.append(backupTime).append("\\n");
+                report.append(backupTime).append("\n");
                 report.append("Bản sao lưu: ").append(uniqueSaved.size())
                         .append(" package hợp lệ · Đã cài: ").append(installedCount)
                         .append(" · Còn thiếu: ").append(missing.size());
