@@ -185,9 +185,12 @@ class MainActivity : Activity() {
             appendLine()
             appendLine(deviceInfo.text?.toString().orEmpty())
             appendLine()
+            appendLine("Phạm vi quét: " + if (showingAllPackages) "Ứng dụng người dùng và package hệ thống" else "Chỉ ứng dụng người dùng")
             appendLine("Tổng package đã đọc: " + packageRows.size)
             appendLine("Package hệ thống: " + systemPackages.size)
-            appendLine("Ứng dụng người dùng: " + (packageRows.size - systemPackages.size))
+            appendLine("Ứng dụng người dùng: " + packageRows.count { it !in systemPackages })
+            appendLine("Đã nhận diện trong danh sách bảo vệ: " + packageRows.count { it in protectedPackages })
+            appendLine("Chưa được đánh giá: " + packageRows.count { it !in protectedPackages })
             appendLine()
             appendLine("DANH SÁCH PACKAGE")
             packageRows.sorted().forEach { name ->
@@ -199,6 +202,7 @@ class MainActivity : Activity() {
                 appendLine("$name [$category]")
             }
             appendLine()
+            appendLine("GIỚI HẠN: Danh sách bảo vệ hiện tại chỉ là tập nhận diện cơ bản, không bao phủ mọi hãng và firmware. Nhãn 'chưa được đánh giá' không có nghĩa là không quan trọng.")
             appendLine("LƯU Ý: Báo cáo chỉ chứa thông tin đọc qua ADB. Package chưa đánh giá không được xác nhận an toàn để tắt. Không có thao tác thay đổi nào được thực hiện trên TV.")
         }
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
