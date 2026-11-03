@@ -9,7 +9,7 @@ YouClean is an Android TV / Google TV launcher based on the upstream CleanYourTV
 - **JSON app-list backup** — exports package names, labels and system/user classification only. It does not copy APK files or private app data.
 - **Backup comparison** — imports a YouClean JSON list and reports packages that are missing on the current TV. It does not install or modify apps.
 - **ADB Wi-Fi guide** — step-by-step guidance for Android 11+ Wireless debugging and older firmware.
-- **ADB Wi-Fi prototype** — pairing-code and TLS connection flow for Android 11+. After connection it runs only `pm list packages -3` to read third-party package names. It does not disable, uninstall, or change packages.
+- **ADB Wi-Fi prototype** — pairing-code and TLS connection flow for Android 11+. After connection it runs only `pm list packages` to read package names for both user and system apps. It does not disable, uninstall, or change packages.
 
 The manager and ADB tools are opened from the launcher's Settings screen; they are not intended to appear as separate launcher icons.
 
