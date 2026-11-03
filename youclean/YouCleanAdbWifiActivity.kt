@@ -221,8 +221,10 @@ class YouCleanAdbWifiActivity : Activity() {
                     .putStringSet("remote_packages", HashSet(packages))
                     .putLong("remote_saved_at", System.currentTimeMillis())
                     .apply()
-                setStatus("Đã kết nối ADB. Đọc được " + packages.size + " package (gồm ứng dụng người dùng và hệ thống):\n" +
-                    packages.take(120).map { "package:" + it }.joinToString("\n").ifBlank { "(TV không trả về package nào)" })
+                setStatus("Đã đọc thành công " + packages.size + " package từ TV " + ip + ".\n" +
+                    "Danh sách đầy đủ đã lưu trong YouClean. Phiên ADB đã đóng sau khi đọc; đây không phải kết nối trực tiếp đang duy trì.\n\n" +
+                    packages.take(120).map { "package:" + it }.joinToString("\n").ifBlank { "(TV không trả về package nào)" } +
+                    if (packages.size > 120) "\n… Còn " + (packages.size - 120) + " package đã lưu." else "")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
