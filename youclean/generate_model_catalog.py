@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 ROOT = Path("upstream/examples")
-OUT = Path("upstream/launcher/app/src/main/assets/youclean/model_catalog.json")
+OUT = Path("upstream/launcher/phone/src/main/assets/youclean/model_catalog.json")
 records = []
 
 for tv_file in sorted(ROOT.glob("*/tv.json")):
@@ -16,8 +16,18 @@ for tv_file in sorted(ROOT.glob("*/tv.json")):
         raise SystemExit(f"Invalid device metadata: {tv_file}: {exc}")
     debloat = folder / "debloat.txt"
     header = debloat.read_text(encoding="utf-8", errors="replace")[:12000] if debloat.exists() else ""
-    fingerprint = ""
-    build = ""
+    properties = {}
+    property_names = (
+        "ro.product.manufacturer", "ro.product.brand", "ro.product.model",
+        "ro.product.name", "ro.product.device", "ro.build.fingerprint",
+        "ro.build.display.id", "ro.build.version.release", "ro.build.version.sdk",
+    )
+    for line in header.splitlines():
+        match = re.search(r"\\b(" + "|".join(map(re.escape, property_names)) + r")\\s*=\\s*(.*?)\\s*$", line, re.I)
+        if match:
+            properties[match.group(1).lower()] = match.group(2).strip().strip("`'\\\"")
+    fingerprint = properties.get("ro.build.fingerprint", "")
+    build = properties.get("ro.build.display.id", "")
     for line in header.splitlines():
         match = re.search(r"Fingerprint\s+([^\s]+)", line, re.I)
         if match and not fingerprint:
