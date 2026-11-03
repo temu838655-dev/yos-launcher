@@ -153,20 +153,26 @@ jobs:
         working-directory: upstream/launcher
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace -PlauncherApplicationId=com.youclean.tvhome assembleRelease
+          ./gradlew --no-daemon --stacktrace -PlauncherApplicationId=com.youclean.tvhome :app:assembleRelease :phone:assembleRelease
           mkdir -p ../../dist
+          cp app/build/outputs/apk/release/app-release.apk ../../dist/YouClean-TV.apk
           cp app/build/outputs/apk/release/app-release.apk ../../dist/YouClean.apk
+          cp phone/build/outputs/apk/release/phone-release.apk ../../dist/YouClean-Phone.apk
 
       - name: Package complete upstream source and device data
         run: |
           zip -qr dist/YouClean-upstream-source.zip upstream -x "upstream/.git/*"
-          sha256sum dist/YouClean.apk dist/YouClean-upstream-source.zip | tee dist/SHA256SUMS.txt
+          sha256sum dist/YouClean-Phone.apk dist/YouClean-TV.apk dist/YouClean-upstream-source.zip | tee dist/SHA256SUMS.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: YouClean-Android-TV
           path: |
+            dist/YouClean-Phone.apk
+            dist/YouClean-TV.apk
+            dist/YouClean-Phone.apk
+            dist/YouClean-TV.apk
             dist/YouClean.apk
             dist/YouClean-upstream-source.zip
             dist/SHA256SUMS.txt
