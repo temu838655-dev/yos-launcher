@@ -1025,14 +1025,16 @@ public final class YouCleanManagerActivity extends Activity {
             }
             int installedCount = uniqueSaved.size() - missing.size();
 
+            String backupTime = backupCreatedAtLabel(backup);
             if (missing.isEmpty()) {
-                summary.setText("Đã đối chiếu " + uniqueSaved.size()
+                summary.setText(backupTime + "\\nĐã đối chiếu " + uniqueSaved.size()
                         + " package hợp lệ: không phát hiện package nào bị thiếu. "
                         + (invalidEntries > 0 ? "Mục lỗi: " + invalidEntries + ". " : "")
                         + (duplicateEntries > 0 ? "Mục trùng lặp: " + duplicateEntries + ". " : "")
                         + "Không có ứng dụng nào được cài đặt hoặc thay đổi.");
             } else {
                 StringBuilder report = new StringBuilder();
+                report.append(backupTime).append("\\n");
                 report.append("Bản sao lưu: ").append(uniqueSaved.size())
                         .append(" package hợp lệ · Đã cài: ").append(installedCount)
                         .append(" · Còn thiếu: ").append(missing.size());
@@ -1057,6 +1059,16 @@ public final class YouCleanManagerActivity extends Activity {
         } catch (Exception e) {
             summary.setText("Không thể đọc bản sao lưu: " + e.getMessage());
         }
+    }
+
+    /** Show the optional creation timestamp so users can identify an imported backup. */
+    private String backupCreatedAtLabel(JSONObject backup) {
+        Object value = backup.opt("createdAt");
+        if (!(value instanceof Number)) return "Thời điểm sao lưu: không rõ";
+        long timestamp = ((Number) value).longValue();
+        if (timestamp <= 0L) return "Thời điểm sao lưu: không rõ";
+        return "Thời điểm sao lưu: "
+                + android.text.format.DateFormat.format("dd/MM/yyyy HH:mm", timestamp);
     }
 
     /** Reject malformed package identifiers from imported backup files. */
