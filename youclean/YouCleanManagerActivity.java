@@ -1009,7 +1009,7 @@ public final class YouCleanManagerActivity extends Activity {
                 if (invalidEntries > 0) {
                     report.append(" · Mục lỗi: ").append(invalidEntries);
                 }
-                report.append("\\n");
+                report.append("\n");
                 int count = 0;
                 for (String pkg : missing) {
                     if (count++ == 30) {
