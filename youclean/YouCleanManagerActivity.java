@@ -303,18 +303,18 @@ public final class YouCleanManagerActivity extends Activity {
                     .append(" hồ sơ TV. Thiết bị hiện tại: ")
                     .append(Build.MANUFACTURER).append(" / ").append(Build.MODEL)
                     .append(" / ").append(Build.DEVICE)
-                    .append("\\nBuild hiện tại: ").append(currentBuild)
+                    .append("\nBuild hiện tại: ").append(currentBuild)
                     .append(" · Incremental: ").append(currentIncremental)
-                    .append("\\nFingerprint hiện tại: ")
+                    .append("\nFingerprint hiện tại: ")
                     .append(currentFingerprint.isEmpty() ? "không cung cấp" : currentFingerprint)
-                    .append("\\n\\n");
+                    .append("\n\n");
             if (matches.isEmpty()) {
                 report.append("Chưa tìm thấy hồ sơ có từ khóa model/hãng trùng. "
                         + "Danh mục upstream có thể không chứa đúng thiết bị này.");
             } else {
                 int limit = Math.min(matches.size(), 8);
                 report.append("Hồ sơ được xếp theo mức độ trùng. Chỉ fingerprint trùng hoàn toàn "
-                        + "mới được đánh dấu trùng fingerprint; các kết quả khác chỉ là gợi ý model/hãng.\\n\\n");
+                        + "mới được đánh dấu trùng fingerprint; các kết quả khác chỉ là gợi ý model/hãng.\n\n");
                 for (int i = 0; i < limit; i++) {
                     JSONObject item = matches.get(i);
                     String itemFingerprint = normalizeFingerprint(item.optString("fingerprint", ""));
@@ -323,18 +323,18 @@ public final class YouCleanManagerActivity extends Activity {
                     report.append(i + 1).append(". ")
                             .append(exactFingerprint ? "[FINGERPRINT TRÙNG]" : "[GỢI Ý MODEL/HÃNG]")
                             .append(" ").append(item.optString("tv"))
-                            .append("\\n   Hệ điều hành: ").append(item.optString("os", "không rõ"))
+                            .append("\n   Hệ điều hành: ").append(item.optString("os", "không rõ"))
                             .append(" · ").append(item.optInt("debloatPackageCount"))
                             .append(" package trong danh sách mẫu")
-                            .append("\\n   Build mẫu: ").append(item.optString("build", "không có"))
-                            .append("\\n   Fingerprint mẫu: ")
+                            .append("\n   Build mẫu: ").append(item.optString("build", "không có"))
+                            .append("\n   Fingerprint mẫu: ")
                             .append(itemFingerprint.isEmpty() ? "không có" : itemFingerprint);
                     String notes = item.optString("notes", "");
                     if (!notes.isEmpty()) {
                         if (notes.length() > 420) notes = notes.substring(0, 420) + "…";
-                        report.append("\\n   Ghi chú: ").append(notes);
+                        report.append("\n   Ghi chú: ").append(notes);
                     }
-                    report.append("\\n   Nguồn: ").append(item.optString("source")).append("\\n\\n");
+                    report.append("\n   Nguồn: ").append(item.optString("source")).append("\n\n");
                 }
             }
             report.append("LƯU Ý AN TOÀN: fingerprint trùng là tín hiệu nhận dạng mạnh nhưng vẫn cần "
