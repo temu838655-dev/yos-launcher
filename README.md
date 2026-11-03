@@ -1,18 +1,33 @@
 # YouClean
 
-YouClean is an Android TV / Google TV launcher build based on the upstream CleanYourTV project by Gathin23.
+YouClean is an Android TV / Google TV launcher based on the upstream CleanYourTV project by Gathin23, with downstream YouClean tools.
 
-## Current build contents
+## Included in the APK
 
-- **YouClean.apk** — the upstream lightweight Android TV launcher, rebranded with the app label **YouClean** and application ID `com.youclean.tvhome`.
-- **YouClean-upstream-source.zip** — the upstream source tree, including launcher, tools, examples/device profiles, tests and themes, bundled separately for inspection and further development.
-- **SHA256SUMS.txt** — SHA-256 checksums for the APK and source archive.
+- **YouClean launcher** — upstream TV launcher rebranded as YouClean, application ID `com.youclean.tvhome`.
+- **App manager** — opened from the launcher's Settings screen; lists installed apps, searches and filters user/system apps, and opens Android's App info page.
+- **JSON app-list backup** — exports package names, labels and system/user classification only. It does not copy APK files or private app data.
+- **Backup comparison** — imports a YouClean JSON list and reports packages that are missing on the current TV. It does not install or modify apps.
+- **ADB Wi-Fi guide** — step-by-step guidance for Android 11+ Wireless debugging and older firmware.
+- **ADB Wi-Fi prototype** — pairing-code and TLS connection flow for Android 11+. After connection it runs only `pm list packages -3` to read third-party package names. It does not disable, uninstall, or change packages.
 
-Important: the current APK is the launcher build. The ADB cleanup scripts and device profiles are included in the separate source archive; they are **not yet integrated as interactive cleanup features inside the APK**.
+The manager and ADB tools are opened from the launcher's Settings screen; they are not intended to appear as separate launcher icons.
+
+## Important limitations
+
+- ADB pairing and TLS connection have passed CI compilation, but still require testing against real TV firmware and network configurations.
+- The current in-app ADB prototype supports Android 11+ Wireless debugging. Android 8–10 has guidance only; it does not yet have an in-app legacy ADB transport.
+- App-list backup is metadata-only. It is not a full device backup and cannot restore application data.
+- The current ADB command is read-only. No package disabling, uninstalling, or automatic cleanup is implemented in this prototype.
 
 ## Build and downloads
 
-Open **Actions → YouClean Android TV → Run workflow** to start a build manually. Pushes to `main` also start a build. Each successful build uploads the APK, source archive and checksums as a GitHub Actions artifact and attaches them to a GitHub Release.
+Open **Actions → YouClean Android TV → Run workflow** to start a build manually. Pushes to `main` and `feature/adb-wifi-prototype` start builds. Each successful build uploads the APK, source archive and checksums as an Actions artifact and attaches them to a GitHub Release.
+
+- Stable branch: `main`
+- Experimental branch: `feature/adb-wifi-prototype`
+
+Do not merge the experimental branch into `main` until the APK has been installed and tested on the target TV.
 
 ## Upstream project and license
 
@@ -22,4 +37,4 @@ YouClean is an independent downstream build and is not affiliated with or endors
 
 ## Safety
 
-The upstream cleanup tools use Android's ADB and `pm disable-user`; they do not root the TV or uninstall packages. Review the exact device list and backup/restore instructions before changing system packages. Never disable packages automatically.
+The prototype does not root the TV. Pair only on a trusted local network, keep the pairing code private, and turn Wireless debugging off when it is not needed. Do not disable system packages unless their purpose and recovery path are understood.
