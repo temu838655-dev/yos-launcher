@@ -89,7 +89,7 @@ class MainActivity : Activity() {
             override fun afterTextChanged(s: Editable?) {}
         })
         root.addView(packageSearch, LinearLayout.LayoutParams(-1, dp(48)))
-        packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng.", 13f, Color.rgb(205, 214, 226))
+        packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package. Chưa package nào được xác nhận an toàn để tắt; không tự ý vô hiệu hóa ứng dụng.", 13f, Color.rgb(205, 214, 226))
         packagesView.setPadding(0, dp(10), 0, dp(4))
         root.addView(packagesView)
         root.addView(action("Xóa thông tin nhập") {
@@ -115,8 +115,8 @@ class MainActivity : Activity() {
                     filtered.mapIndexed { index, name ->
                         val type = when {
                             name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
-                            name in systemPackages -> "[HỆ THỐNG]"
-                            else -> "[NGƯỜI DÙNG]"
+                            name in systemPackages -> "[HỆ THỐNG - CHƯA ĐÁNH GIÁ]"
+                            else -> "[CÀI THÊM - CHƯA ĐÁNH GIÁ]"
                         }
                         "${index + 1}. $type $name"
                     }.joinToString("\n")
