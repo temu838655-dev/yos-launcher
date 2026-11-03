@@ -183,6 +183,15 @@ public final class YouCleanManagerActivity extends Activity {
         remotePackagesLp.topMargin = dp(4);
         root.addView(remotePackagesButton, remotePackagesLp);
 
+        Button copyRemotePackages = new Button(this);
+        copyRemotePackages.setText("Sao chép toàn bộ package TV đã lưu");
+        copyRemotePackages.setTextSize(13);
+        applyTvFocusFeedback(copyRemotePackages);
+        copyRemotePackages.setOnClickListener(v -> copyAllRemotePackages());
+        LinearLayout.LayoutParams copyRemoteLp = new LinearLayout.LayoutParams(-1, dp(42));
+        copyRemoteLp.topMargin = dp(4);
+        root.addView(copyRemotePackages, copyRemoteLp);
+
         Button refresh = new Button(this);
         refresh.setText("Làm mới danh sách ứng dụng");
         refresh.setTextSize(13);
@@ -453,6 +462,34 @@ public final class YouCleanManagerActivity extends Activity {
         if (remotePackages.isEmpty()) {
             summary.setText("Chưa có package TV đã lưu. Hãy kết nối TV bằng ADB Wi-Fi trước.");
         }
+    }
+
+    /** Copy the last saved remote inventory; this does not reconnect to the TV. */
+    private void copyAllRemotePackages() {
+        android.content.SharedPreferences prefs =
+                getSharedPreferences("youclean_adb", MODE_PRIVATE);
+        java.util.Set<String> saved = prefs.getStringSet(
+                "remote_packages", java.util.Collections.emptySet());
+        if (saved == null || saved.isEmpty()) {
+            Toast.makeText(this, "Chưa có danh sách package TV đã lưu.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ArrayList<String> sorted = new ArrayList<>(saved);
+        Collections.sort(sorted, String.CASE_INSENSITIVE_ORDER);
+        StringBuilder content = new StringBuilder();
+        for (String pkg : sorted) {
+            if (content.length() > 0) content.append('\\n');
+            content.append(pkg);
+        }
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (clipboard == null) {
+            Toast.makeText(this, "Không thể truy cập bộ nhớ tạm.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        clipboard.setPrimaryClip(ClipData.newPlainText("YouClean · TV package inventory", content.toString()));
+        Toast.makeText(this, "Đã sao chép " + sorted.size()
+                + " package từ danh sách đã lưu (không phải kết nối trực tiếp).",
+                Toast.LENGTH_LONG).show();
     }
 
     private void addRemotePackageRow(String pkg) {
