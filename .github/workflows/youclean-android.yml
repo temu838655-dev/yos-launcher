@@ -3,6 +3,8 @@ name: YouClean Android TV
 on:
   push:
     branches: [main, feature/adb-wifi-prototype]
+    paths-ignore:
+      - '.github/workflows/vendor-cleanyourtv.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,10 +21,12 @@ jobs:
       - name: Checkout YouClean build configuration
         uses: actions/checkout@v4
 
-      - name: Checkout upstream CleanYourTV source
+      - name: Verify vendored complete CleanYourTV source
         run: |
-          git clone --depth 1 https://github.com/Gathin23/cleanyourtv.git upstream
-          echo "Upstream commit: $(git -C upstream rev-parse HEAD)"
+          test -f UPSTREAM_COMMIT
+          test -f upstream/LICENSE
+          test -f upstream/launcher/gradlew
+          echo "Building from vendored upstream commit: $(cat UPSTREAM_COMMIT)"
 
       - name: Add YouClean app manager screen
         run: |
