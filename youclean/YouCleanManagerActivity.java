@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -99,6 +100,14 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams matchingNoticeLp = new LinearLayout.LayoutParams(-1, -2);
         matchingNoticeLp.topMargin = dp(5);
         root.addView(matchingNotice, matchingNoticeLp);
+
+        Button modelLookup = new Button(this);
+        modelLookup.setText("Tra cứu hồ sơ TV từ CleanYourTV");
+        modelLookup.setTextSize(13);
+        modelLookup.setOnClickListener(v -> showModelMatches());
+        LinearLayout.LayoutParams modelLookupLp = new LinearLayout.LayoutParams(-1, dp(44));
+        modelLookupLp.topMargin = dp(5);
+        root.addView(modelLookup, modelLookupLp);
 
         EditText search = new EditText(this);
         search.setSingleLine(true);
@@ -221,6 +230,94 @@ public final class YouCleanManagerActivity extends Activity {
     private String safeBuildValue(String value) {
         if (value == null || value.trim().isEmpty()) return "không cung cấp";
         return value.trim();
+    }
+
+    private void showModelMatches() {
+        try {
+            StringBuilder jsonText = new StringBuilder();
+            try (InputStream in = getAssets().open("youclean/model_catalog.json");
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) jsonText.append(line);
+            }
+            JSONObject catalog = new JSONObject(jsonText.toString());
+            JSONArray devices = catalog.optJSONArray("devices");
+            if (devices == null) throw new IllegalStateException("Danh mục model không hợp lệ.");
+
+            String[] deviceValues = {
+                    Build.MANUFACTURER, Build.MODEL, Build.DEVICE, Build.PRODUCT, Build.BOARD
+            };
+            java.util.LinkedHashSet<String> terms = new java.util.LinkedHashSet<>();
+            for (String value : deviceValues) {
+                if (value == null) continue;
+                String normalized = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim();
+                for (String part : normalized.split("\\s+")) {
+                    if (part.length() >= 3) terms.add(part);
+                }
+            }
+
+            java.util.ArrayList<JSONObject> matches = new java.util.ArrayList<>();
+            java.util.ArrayList<Integer> scores = new java.util.ArrayList<>();
+            for (int i = 0; i < devices.length(); i++) {
+                JSONObject item = devices.optJSONObject(i);
+                if (item == null) continue;
+                String haystack = (item.optString("brand") + " " + item.optString("tv")
+                        + " " + item.optString("id")).toLowerCase(Locale.ROOT);
+                int score = 0;
+                for (String term : terms) {
+                    if (haystack.contains(term)) score += term.length() >= 5 ? 3 : 1;
+                }
+                if (score > 0) {
+                    int position = 0;
+                    while (position < scores.size() && scores.get(position) >= score) position++;
+                    matches.add(position, item);
+                    scores.add(position, score);
+                }
+            }
+
+            StringBuilder report = new StringBuilder();
+            report.append("Danh mục tham khảo: ").append(devices.length())
+                    .append(" hồ sơ TV. Thiết bị hiện tại: ")
+                    .append(Build.MANUFACTURER).append(" / ").append(Build.MODEL)
+                    .append(" / ").append(Build.DEVICE).append("\n\n");
+            if (matches.isEmpty()) {
+                report.append("Chưa tìm thấy hồ sơ có từ khóa trùng. Bạn cần đối chiếu thủ công bằng model, board và firmware.");
+            } else {
+                int limit = Math.min(matches.size(), 8);
+                report.append("Các hồ sơ có từ khóa gần giống (không phải xác nhận tương thích):\n\n");
+                for (int i = 0; i < limit; i++) {
+                    JSONObject item = matches.get(i);
+                    report.append(i + 1).append(". ").append(item.optString("tv"))
+                            .append("\n   Hệ điều hành: ").append(item.optString("os", "không rõ"))
+                            .append(" · ").append(item.optInt("debloatPackageCount"))
+                            .append(" package trong danh sách mẫu")
+                            .append("\n   Build ghi nhận: ").append(item.optString("build", "không có"))
+                            .append("\n   Fingerprint: ").append(item.optString("fingerprint", "không có"));
+                    String notes = item.optString("notes", "");
+                    if (!notes.isEmpty()) {
+                        if (notes.length() > 420) notes = notes.substring(0, 420) + "…";
+                        report.append("\n   Ghi chú: ").append(notes);
+                    }
+                    report.append("\n   Nguồn: ").append(item.optString("source")).append("\n\n");
+                }
+            }
+            report.append("LƯU Ý AN TOÀN: kết quả chỉ dựa trên từ khóa hãng/model. Chỉ trùng tên không chứng minh cùng firmware. YouClean chưa áp dụng danh sách và không tắt package nào.");
+            TextView body = text(report.toString(), 13, Color.WHITE);
+            body.setPadding(dp(18), dp(12), dp(18), dp(12));
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(body);
+            new AlertDialog.Builder(this)
+                    .setTitle("Đối chiếu hồ sơ TV · chỉ tham khảo")
+                    .setView(scroll)
+                    .setPositiveButton("Đóng", null)
+                    .show();
+        } catch (Exception e) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Không đọc được danh mục TV")
+                    .setMessage("Danh mục sẽ được tạo trong lần build tiếp theo. Chi tiết: " + e.getMessage())
+                    .setPositiveButton("Đóng", null)
+                    .show();
+        }
     }
 
     private void loadApps() {
