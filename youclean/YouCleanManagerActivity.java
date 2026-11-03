@@ -157,6 +157,25 @@ public final class YouCleanManagerActivity extends Activity {
         filterLp.topMargin = dp(8);
         root.addView(filters, filterLp);
 
+        Button adbConnect = new Button(this);
+        adbConnect.setText("Kết nối TV khác qua ADB Wi-Fi");
+        adbConnect.setTextSize(13);
+        applyTvFocusFeedback(adbConnect);
+        adbConnect.setOnClickListener(v ->
+                startActivity(new Intent(this, YouCleanAdbWifiActivity.class)));
+        LinearLayout.LayoutParams adbConnectLp = new LinearLayout.LayoutParams(-1, dp(44));
+        adbConnectLp.topMargin = dp(8);
+        root.addView(adbConnect, adbConnectLp);
+
+        Button remotePackagesButton = new Button(this);
+        remotePackagesButton.setText("Xem package TV đã đọc qua ADB");
+        remotePackagesButton.setTextSize(13);
+        applyTvFocusFeedback(remotePackagesButton);
+        remotePackagesButton.setOnClickListener(v -> loadRemotePackages());
+        LinearLayout.LayoutParams remotePackagesLp = new LinearLayout.LayoutParams(-1, dp(44));
+        remotePackagesLp.topMargin = dp(4);
+        root.addView(remotePackagesButton, remotePackagesLp);
+
         Button refresh = new Button(this);
         refresh.setText("Làm mới danh sách ứng dụng");
         refresh.setTextSize(13);
@@ -404,6 +423,53 @@ public final class YouCleanManagerActivity extends Activity {
                 || "generic".equals(term) || "unknown".equals(term) || "model".equals(term);
     }
 
+    private void loadRemotePackages() {
+        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        remotePackages = new ArrayList<>(saved == null
+                ? java.util.Collections.emptySet() : saved);
+        Collections.sort(remotePackages, String.CASE_INSENSITIVE_ORDER);
+        showingRemotePackages = true;
+        selectedFilter = ALL;
+        renderApps();
+        if (remotePackages.isEmpty()) {
+            summary.setText("Chưa có package TV đã lưu. Hãy kết nối TV bằng ADB Wi-Fi trước.");
+        }
+    }
+
+    private void addRemotePackageRow(String pkg) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setTag(pkg);
+        row.setFocusable(true);
+        row.setClickable(false);
+        row.setBackgroundColor(Color.rgb(27, 34, 45));
+        row.setPadding(dp(14), dp(10), dp(14), dp(10));
+        row.setOnFocusChangeListener((v, focused) -> {
+            v.setBackgroundColor(focused ? Color.rgb(58, 92, 130) : Color.rgb(27, 34, 45));
+            v.setScaleX(focused ? 1.012f : 1.0f);
+            v.setScaleY(focused ? 1.012f : 1.0f);
+        });
+        TextView name = text(pkg, 16, Color.WHITE);
+        name.setTypeface(null, 1);
+        row.addView(name);
+        TextView source = text("Package trên TV đã kết nối · dữ liệu ADB đã lưu", 12,
+                Color.rgb(174, 190, 208));
+        LinearLayout.LayoutParams sourceLp = new LinearLayout.LayoutParams(-1, -2);
+        sourceLp.topMargin = dp(3);
+        row.addView(source, sourceLp);
+        String safety = safetyLabel(pkg, true);
+        int safetyColor = safety.startsWith("BẢO VỆ")
+                ? Color.rgb(255, 160, 120) : Color.rgb(220, 195, 125);
+        TextView safetyView = text(safety, 12, safetyColor);
+        LinearLayout.LayoutParams safetyLp = new LinearLayout.LayoutParams(-1, -2);
+        safetyLp.topMargin = dp(2);
+        row.addView(safetyView, safetyLp);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.bottomMargin = dp(7);
+        list.addView(row, lp);
+    }
+
     private void loadApps() {
         try {
             applications = getPackageManager().getInstalledApplications(PackageManager.GET_META_DATA);
@@ -433,19 +499,31 @@ public final class YouCleanManagerActivity extends Activity {
         list.removeAllViews();
         int total = 0;
         int shown = 0;
-        for (ApplicationInfo app : applications) {
-            boolean system = (app.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
-            if (selectedFilter == USER && system) continue;
-            if (selectedFilter == SYSTEM && !system) continue;
-            total++;
-            String label = String.valueOf(getPackageManager().getApplicationLabel(app));
-            String pkg = app.packageName == null ? "" : app.packageName;
-            if (!query.isEmpty() && !label.toLowerCase(Locale.ROOT).contains(query)
-                    && !pkg.toLowerCase(Locale.ROOT).contains(query)) continue;
-            shown++;
-            addAppRow(app, label, pkg, system);
+        if (showingRemotePackages) {
+            for (String pkg : remotePackages) {
+                total++;
+                if (!query.isEmpty() && !pkg.toLowerCase(Locale.ROOT).contains(query)) continue;
+                shown++;
+                addRemotePackageRow(pkg);
+            }
+            summary.setText("TV từ xa · Hiển thị " + shown + " / " + total
+                    + " package đã đọc qua ADB · chỉ xem, không thao tác package");
+        } else {
+            for (ApplicationInfo app : applications) {
+                boolean system = (app.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                if (selectedFilter == USER && system) continue;
+                if (selectedFilter == SYSTEM && !system) continue;
+                total++;
+                String label = String.valueOf(getPackageManager().getApplicationLabel(app));
+                String pkg = app.packageName == null ? "" : app.packageName;
+                if (!query.isEmpty() && !label.toLowerCase(Locale.ROOT).contains(query)
+                        && !pkg.toLowerCase(Locale.ROOT).contains(query)) continue;
+                shown++;
+                addAppRow(app, label, pkg, system);
+            }
+            summary.setText("Thiết bị đang chạy YouClean · Hiển thị " + shown + " / " + total
+                    + " ứng dụng trong bộ lọc");
         }
-        summary.setText("Hiển thị " + shown + " / " + total + " ứng dụng trong bộ lọc");
         if (shown == 0) {
             TextView empty = text("Không tìm thấy ứng dụng phù hợp.", 16, Color.LTGRAY);
             empty.setPadding(dp(12), dp(20), dp(12), dp(20));
