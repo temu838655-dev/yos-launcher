@@ -46,6 +46,9 @@ public final class YouCleanManagerActivity extends Activity {
     private ScrollView appScroll;
     private TextView summary;
     private List<ApplicationInfo> applications = new ArrayList<>();
+    // Separate remote inventory: never mix TV package names with this device's PackageManager list.
+    private List<String> remotePackages = new ArrayList<>();
+    private boolean showingRemotePackages = false;
     private boolean resumedOnce = false;
     private int savedListScrollY = 0;
     private String focusedPackageBeforeRefresh = null;
@@ -254,6 +257,7 @@ public final class YouCleanManagerActivity extends Activity {
             updateFilterButtonStyle(button, filter, focused);
         });
         button.setOnClickListener(v -> {
+            showingRemotePackages = false;
             selectedFilter = filter;
             updateAllFilterButtonStyles();
             renderApps();
