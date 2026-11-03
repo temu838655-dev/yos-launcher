@@ -955,17 +955,21 @@ public final class YouCleanManagerActivity extends Activity {
     private void compareBackupFile(Uri uri) {
         try (InputStream in = getContentResolver().openInputStream(uri)) {
             if (in == null) throw new IllegalArgumentException("Không đọc được tệp đã chọn.");
-            StringBuilder content = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    content.append(line);
-                    if (content.length() > 5 * 1024 * 1024) {
-                        throw new IllegalArgumentException("Tệp sao lưu quá lớn (giới hạn 5 MB).");
-                    }
+            // Enforce the limit on actual UTF-8 bytes before decoding/parsing.
+            // Reading line-by-line could allocate an unbounded single line first.
+            java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            int totalBytes = 0;
+            int bytesRead;
+            while ((bytesRead = in.read(chunk)) != -1) {
+                totalBytes += bytesRead;
+                if (totalBytes > 5 * 1024 * 1024) {
+                    throw new IllegalArgumentException("Tệp sao lưu quá lớn (giới hạn 5 MB).");
                 }
+                buffer.write(chunk, 0, bytesRead);
             }
-            JSONObject backup = new JSONObject(content.toString());
+            String content = new String(buffer.toByteArray(), "UTF-8");
+            JSONObject backup = new JSONObject(content);
             if (!"youclean-app-list".equals(backup.optString("format"))
                     || backup.optInt("version", -1) != 1) {
                 throw new IllegalArgumentException("Định dạng hoặc phiên bản tệp sao lưu không được hỗ trợ.");
