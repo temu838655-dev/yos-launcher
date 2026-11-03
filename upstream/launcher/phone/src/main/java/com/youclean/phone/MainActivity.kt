@@ -207,12 +207,24 @@ class MainActivity : Activity() {
             appendLine("QUYỀN RIÊNG TƯ: Báo cáo có thể chứa địa chỉ IP TV và tên package. Hãy kiểm tra nội dung trước khi gửi. Mã ghép đôi và khóa ADB riêng không được đưa vào báo cáo.")
             appendLine("LƯU Ý: Báo cáo chỉ chứa thông tin đọc qua ADB. Package chưa đánh giá không được xác nhận an toàn để tắt. Không có thao tác thay đổi nào được thực hiện trên TV.")
         }
-        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Báo cáo chẩn đoán YouClean")
-            putExtra(Intent.EXTRA_TEXT, report)
-        }
-        startActivity(Intent.createChooser(sendIntent, "Xuất báo cáo YouClean"))
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Xem trước báo cáo YouClean")
+            .setMessage(report)
+            .setPositiveButton("Chia sẻ…") { _, _ ->
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "Báo cáo chẩn đoán YouClean")
+                    putExtra(Intent.EXTRA_TEXT, report)
+                }
+                startActivity(Intent.createChooser(sendIntent, "Chia sẻ báo cáo YouClean"))
+            }
+            .setNeutralButton("Sao chép báo cáo") { _, _ ->
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("YouClean diagnostic report", report))
+                Toast.makeText(this, "Đã sao chép báo cáo. Hãy kiểm tra nội dung trước khi gửi.", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Đóng", null)
+            .show()
     }
 
     private fun restoreConnectionFields() {
