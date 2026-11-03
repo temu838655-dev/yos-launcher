@@ -59,6 +59,7 @@ public final class YouCleanManagerActivity extends Activity {
     private final List<Button> filterButtons = new ArrayList<>();
     private static final int CREATE_BACKUP_FILE = 7101;
     private static final int OPEN_BACKUP_FILE = 7102;
+    private static final int EXPORT_REMOTE_PACKAGES_FILE = 7103;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -191,6 +192,15 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams copyRemoteLp = new LinearLayout.LayoutParams(-1, dp(42));
         copyRemoteLp.topMargin = dp(4);
         root.addView(copyRemotePackages, copyRemoteLp);
+
+        Button exportRemotePackages = new Button(this);
+        exportRemotePackages.setText("Xuất danh sách package TV đã lưu thành TXT");
+        exportRemotePackages.setTextSize(13);
+        applyTvFocusFeedback(exportRemotePackages);
+        exportRemotePackages.setOnClickListener(v -> createRemotePackagesTextFile());
+        LinearLayout.LayoutParams exportRemoteLp = new LinearLayout.LayoutParams(-1, dp(42));
+        exportRemoteLp.topMargin = dp(4);
+        root.addView(exportRemotePackages, exportRemoteLp);
 
         Button refresh = new Button(this);
         refresh.setText("Làm mới danh sách ứng dụng");
@@ -751,6 +761,61 @@ public final class YouCleanManagerActivity extends Activity {
         return "CHƯA XÁC MINH · chưa đối chiếu đúng model TV";
     }
 
+    private void createRemotePackagesTextFile() {
+        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        if (saved == null || saved.isEmpty()) {
+            Toast.makeText(this, "Chưa có danh sách package TV đã lưu. Hãy đọc TV qua ADB trước.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TITLE, "YouClean-TV-packages.txt");
+            startActivityForResult(intent, EXPORT_REMOTE_PACKAGES_FILE);
+        } catch (Exception e) {
+            summary.setText("Không thể tạo tệp package TV: " + e.getMessage());
+        }
+    }
+
+    private void exportRemotePackagesToText(Uri uri) {
+        java.util.Set<String> saved = getSharedPreferences("youclean_adb", MODE_PRIVATE)
+                .getStringSet("remote_packages", java.util.Collections.emptySet());
+        ArrayList<String> sorted = new ArrayList<>(saved == null
+                ? java.util.Collections.emptySet() : saved);
+        Collections.sort(sorted, String.CASE_INSENSITIVE_ORDER);
+        if (sorted.isEmpty()) {
+            summary.setText("Không có package TV đã lưu để xuất.");
+            return;
+        }
+        android.content.SharedPreferences prefs = getSharedPreferences("youclean_adb", MODE_PRIVATE);
+        String ip = prefs.getString("remote_ip", "không rõ");
+        long savedAt = prefs.getLong("remote_saved_at", 0L);
+        String time = savedAt > 0L
+                ? android.text.format.DateFormat.format("dd/MM/yyyy HH:mm", savedAt).toString()
+                : "không rõ thời điểm";
+        try (OutputStream out = getContentResolver().openOutputStream(uri);
+             OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8")) {
+            if (out == null) throw new IllegalStateException("Không mở được tệp đã chọn.");
+            writer.write("# YouClean - danh sách package TV đã đọc qua ADB\n");
+            writer.write("# TV: " + ip + "\n");
+            writer.write("# Thời điểm đọc: " + time + "\n");
+            writer.write("# Tổng package: " + sorted.size() + "\n");
+            writer.write("# Đây là dữ liệu đã lưu, không phải kết nối TV trực tiếp.\n\n");
+            for (String pkg : sorted) {
+                writer.write(pkg);
+                writer.write("\n");
+            }
+            writer.flush();
+            summary.setText("Đã xuất " + sorted.size()
+                    + " package TV thành tệp TXT. Dữ liệu lấy từ bản lưu ADB gần nhất.");
+        } catch (Exception e) {
+            summary.setText("Xuất danh sách package thất bại: " + e.getMessage());
+        }
+    }
+
     private void createBackupFile() {
         try {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -769,6 +834,10 @@ public final class YouCleanManagerActivity extends Activity {
         Uri uri = data.getData();
         if (requestCode == OPEN_BACKUP_FILE) {
             compareBackupFile(uri);
+            return;
+        }
+        if (requestCode == EXPORT_REMOTE_PACKAGES_FILE) {
+            exportRemotePackagesToText(uri);
             return;
         }
         if (requestCode != CREATE_BACKUP_FILE) return;
