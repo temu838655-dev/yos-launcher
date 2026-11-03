@@ -11,7 +11,7 @@ android {
     kotlinOptions { jvmTarget = '17' }
     packaging {
         resources {
-            pickFirsts += 'META-INF/versions/**/OSGI-INF/MANIFEST.MF'
+            pickFirsts += ['META-INF/versions/**/OSGI-INF/MANIFEST.MF', 'META-INF/LICENSE.md']
         }
     }
 }
