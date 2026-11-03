@@ -171,7 +171,7 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          p = Path("upstream/launcher/app/src/main/assets/youclean/model_catalog.json")
+          p = Path("upstream/launcher/phone/src/main/assets/youclean/model_catalog.json")
           data = json.loads(p.read_text(encoding="utf-8"))
           assert data["schemaVersion"] == 1
           assert len(data["devices"]) >= 400, len(data["devices"])
