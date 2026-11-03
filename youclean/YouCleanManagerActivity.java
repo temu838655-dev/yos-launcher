@@ -1092,6 +1092,12 @@ public final class YouCleanManagerActivity extends Activity {
         if (buildValue instanceof String && !((String) buildValue).trim().isEmpty()) {
             label.append("\nBuild sao lưu: ").append(((String) buildValue).trim());
         }
+        Object fingerprintValue = backup.opt("deviceFingerprint");
+        if (fingerprintValue instanceof String
+                && !((String) fingerprintValue).trim().isEmpty()) {
+            label.append("\nFingerprint sao lưu: ")
+                    .append(((String) fingerprintValue).trim());
+        }
         Object sdkValue = backup.opt("androidSdk");
         if (sdkValue instanceof Number && ((Number) sdkValue).intValue() > 0) {
             label.append(" (API ").append(((Number) sdkValue).intValue()).append(")");
