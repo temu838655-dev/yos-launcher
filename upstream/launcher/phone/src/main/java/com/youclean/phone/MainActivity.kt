@@ -2,6 +2,7 @@ package com.youclean.phone
 
 import android.app.Activity
 import android.content.ClipData
+import android.content.Intent
 import android.content.ClipboardManager
 import android.graphics.Color
 import android.os.Bundle
@@ -123,6 +124,7 @@ class MainActivity : Activity() {
             setPadding(0, dp(2), 0, dp(4))
         })
         root.addView(action("Sao chép danh sách đang hiển thị") { copyPackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        root.addView(action("Chia sẻ danh sách package") { sharePackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
@@ -141,6 +143,20 @@ class MainActivity : Activity() {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("YouClean package list", content))
         Toast.makeText(this, "Đã sao chép danh sách package.", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun sharePackageList() {
+        val content = packagesView.text?.toString().orEmpty()
+        if (content.isBlank() || content.startsWith("Chưa có dữ liệu")) {
+            Toast.makeText(this, "Chưa có danh sách để chia sẻ.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Danh sách package Android TV - YouClean")
+            putExtra(Intent.EXTRA_TEXT, content)
+        }
+        startActivity(Intent.createChooser(sendIntent, "Chia sẻ danh sách package"))
     }
 
     private fun restoreConnectionFields() {
