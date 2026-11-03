@@ -91,7 +91,7 @@ class YouCleanAdbWifiActivity : Activity() {
             root.addView(edit, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)))
         }
         root.addView(button("1. Ghép đôi bằng mã 6 số") { pairDevice() })
-        root.addView(button("2. Kết nối ADB và đọc danh sách ứng dụng") { connectAndList() })
+        root.addView(button("2. Kết nối ADB và đọc toàn bộ ứng dụng") { connectAndList() })
         status = label("Chưa kết nối. Chưa có lệnh nào được gửi tới TV.", 15f)
         root.addView(status)
         root.addView(label("Cổng ghép đôi và cổng kết nối là hai cổng khác nhau. Khóa ADB được lưu trong vùng riêng của YouClean. Bản thử nghiệm chỉ đọc danh sách package; không vô hiệu hóa hay gỡ ứng dụng.", 13f))
@@ -129,12 +129,12 @@ class YouCleanAdbWifiActivity : Activity() {
             setStatus("Nhập IP TV và cổng Wireless debugging hợp lệ.")
             return
         }
-        setStatus("Đang kết nối TLS và đọc danh sách ứng dụng…")
+        setStatus("Đang kết nối TLS và đọc toàn bộ package (ứng dụng người dùng + hệ thống)…")
         scope.launch {
             try {
                 val output = withContext(Dispatchers.IO) {
                     AdbClient.connectTls(ip, port, keyProvider).use { client ->
-                        client.shell("pm list packages -3").stdoutText
+                        client.shell("pm list packages").stdoutText
                     }
                 }
                 val packages = output.lineSequence().filter { it.startsWith("package:") }.toList()
