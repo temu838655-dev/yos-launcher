@@ -58,6 +58,10 @@ class YouCleanAdbWifiActivity : Activity() {
         // A cancelled coroutine may still enter finally{} while the Activity
         // is being destroyed. Never touch Views after onDestroy().
         if (activityDestroyed) return
+        if (::host.isInitialized) host.isEnabled = !busy
+        if (::pairingPort.isInitialized) pairingPort.isEnabled = !busy
+        if (::pairingCode.isInitialized) pairingCode.isEnabled = !busy
+        if (::connectPort.isInitialized) connectPort.isEnabled = !busy
         if (::pairButton.isInitialized) pairButton.isEnabled = !busy
         if (::connectButton.isInitialized) connectButton.isEnabled = !busy
     }
@@ -83,7 +87,7 @@ class YouCleanAdbWifiActivity : Activity() {
             else ->
                 "Kiểm tra Wireless debugging còn bật, IP TV chưa đổi và cổng đang hiển thị trên TV."
         }
-        return "$action thất bại: $detail\\n$guidance"
+        return "$action thất bại: $detail\n$guidance"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
