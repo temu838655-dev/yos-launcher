@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "tvhome"
-include ':app', ':phone'
+include ':app'
