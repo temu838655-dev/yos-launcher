@@ -288,6 +288,10 @@ class MainActivity : Activity() {
                         buildString {
                             appendLine("Tên phiên bản: " + value("^\\s*versionName=([^\\r\\n]+)"))
                             appendLine("Mã phiên bản: " + value("^\\s*versionCode=([^\\s]+)"))
+                            appendLine("UID ứng dụng: " + value("^\\s*(?:userId|appId)=([^\\s]+)"))
+                            appendLine("Đường dẫn cài đặt: " + value("^\\s*codePath=([^\\r\\n]+)"))
+                            appendLine("Thư mục dữ liệu: " + value("^\\s*dataDir=([^\\r\\n]+)"))
+                            appendLine("Cờ package: " + value("^\\s*pkgFlags=\\[([^\\]]*)\\]"))
                             appendLine("Cài lần đầu: " + value("^\\s*firstInstallTime=([^\\r\\n]+)"))
                             appendLine("Cập nhật gần nhất: " + value("^\\s*lastUpdateTime=([^\\r\\n]+)"))
                             appendLine("Đường dẫn APK:")
