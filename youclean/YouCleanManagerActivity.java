@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -83,6 +84,21 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, -2);
         noteLp.topMargin = dp(7);
         root.addView(note, noteLp);
+
+        TextView deviceInfo = text(deviceIdentityText(), 13, Color.rgb(190, 202, 218));
+        deviceInfo.setBackgroundColor(Color.rgb(27, 34, 45));
+        deviceInfo.setPadding(dp(12), dp(10), dp(12), dp(10));
+        LinearLayout.LayoutParams deviceInfoLp = new LinearLayout.LayoutParams(-1, -2);
+        deviceInfoLp.topMargin = dp(10);
+        root.addView(deviceInfo, deviceInfoLp);
+
+        TextView matchingNotice = text(
+                "Đối chiếu model: chưa xác minh danh sách riêng cho thiết bị này. "
+                + "Không áp dụng danh sách của TV khác nếu chưa kiểm tra firmware.",
+                12, Color.rgb(235, 194, 130));
+        LinearLayout.LayoutParams matchingNoticeLp = new LinearLayout.LayoutParams(-1, -2);
+        matchingNoticeLp.topMargin = dp(5);
+        root.addView(matchingNotice, matchingNoticeLp);
 
         EditText search = new EditText(this);
         search.setSingleLine(true);
@@ -184,6 +200,27 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(46), 1f);
         lp.setMargins(dp(3), 0, dp(3), 0);
         parent.addView(button, lp);
+    }
+
+    private String deviceIdentityText() {
+        String manufacturer = safeBuildValue(Build.MANUFACTURER);
+        String model = safeBuildValue(Build.MODEL);
+        String device = safeBuildValue(Build.DEVICE);
+        String product = safeBuildValue(Build.PRODUCT);
+        String board = safeBuildValue(Build.BOARD);
+        String release = safeBuildValue(Build.VERSION.RELEASE);
+        return "THÔNG TIN THIẾT BỊ\n"
+                + "Hãng: " + manufacturer + "\n"
+                + "Model: " + model + "\n"
+                + "Device: " + device + "\n"
+                + "Product: " + product + "\n"
+                + "Board: " + board + "\n"
+                + "Android: " + release + " (API " + Build.VERSION.SDK_INT + ")";
+    }
+
+    private String safeBuildValue(String value) {
+        if (value == null || value.trim().isEmpty()) return "không cung cấp";
+        return value.trim();
     }
 
     private void loadApps() {
