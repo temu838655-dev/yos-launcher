@@ -60,6 +60,17 @@ public final class YouCleanAdbGuideActivity extends Activity {
 
         Button settings = new Button(this);
         settings.setText("Mở cài đặt nhà phát triển");
+        settings.setAllCaps(false);
+        settings.setTextSize(16);
+        settings.setFocusable(true);
+        settings.setFocusableInTouchMode(true);
+        settings.setOnFocusChangeListener((v, focused) -> {
+            v.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    focused ? Color.rgb(42, 105, 170) : Color.rgb(48, 57, 70)));
+            v.setScaleX(focused ? 1.025f : 1.0f);
+            v.setScaleY(focused ? 1.025f : 1.0f);
+            v.setElevation(focused ? dp(8) : dp(2));
+        });
         settings.setOnClickListener(v -> {
             try {
                 startActivity(new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS));
@@ -68,11 +79,12 @@ public final class YouCleanAdbGuideActivity extends Activity {
                 catch (Exception ignored) {}
             }
         });
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(52));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(56));
         lp.topMargin = dp(16);
         root.addView(settings, lp);
 
         root.addView(text("Lưu ý an toàn: tắt Gỡ lỗi không dây khi không sử dụng. Không chia sẻ mã ghép đôi hoặc cho người lạ truy cập mạng TV.", 14, Color.rgb(255, 210, 140)));
         setContentView(root);
+        settings.requestFocus();
     }
 }
