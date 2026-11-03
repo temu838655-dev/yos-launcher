@@ -976,6 +976,10 @@ public final class YouCleanManagerActivity extends Activity {
             }
             JSONArray saved = backup.optJSONArray("applications");
             if (saved == null) throw new IllegalArgumentException("Tệp không có danh sách ứng dụng hợp lệ.");
+            if (saved.length() > 10000) {
+                throw new IllegalArgumentException("Danh sách sao lưu vượt quá 10.000 mục. "
+                        + "YouClean từ chối xử lý để tránh tiêu tốn quá nhiều bộ nhớ.");
+            }
 
             java.util.HashSet<String> installed = new java.util.HashSet<>();
             for (ApplicationInfo app : applications) {
