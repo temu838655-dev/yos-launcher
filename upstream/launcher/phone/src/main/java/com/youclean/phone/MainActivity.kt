@@ -156,8 +156,9 @@ class MainActivity : Activity() {
                 val protectedCount = packageRows.count { it in protectedPackages }
                 val unreviewedCount = packageRows.size - protectedCount
                 "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\n" +
-                    "Cốt lõi cần giữ: $protectedCount | Chưa đánh giá: $unreviewedCount\n" +
-                    "Phân loại chỉ mang tính nhận diện, KHÔNG có nghĩa package chưa đánh giá là an toàn để tắt.\n" +
+                    "Đã nhận diện cần giữ (danh sách một phần): $protectedCount | Chưa đánh giá: $unreviewedCount\n" +
+                    "CẢNH BÁO: danh sách package cốt lõi chưa đầy đủ. Package không nằm trong danh sách bảo vệ vẫn có thể quan trọng với TV.\n" +
+                    "Không có package nào được xác nhận an toàn để tắt; bản này chỉ đọc dữ liệu, không vô hiệu hóa hoặc gỡ ứng dụng.\n" +
                     filtered.mapIndexed { index, name ->
                         val type = when {
                             name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
