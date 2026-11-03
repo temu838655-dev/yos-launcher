@@ -30,9 +30,20 @@ class YouCleanAdbWifiActivity : Activity() {
         hint = hintText; setHintTextColor(Color.LTGRAY); setTextColor(Color.WHITE); textSize = 17f
         inputType = input; setSingleLine(true); setPadding(dp(12), dp(8), dp(12), dp(8))
         setBackgroundColor(Color.rgb(40, 49, 62))
+        setOnFocusChangeListener { view, focused ->
+            view.setBackgroundColor(if (focused) Color.rgb(58, 92, 130) else Color.rgb(40, 49, 62))
+            view.scaleX = if (focused) 1.015f else 1.0f
+            view.scaleY = if (focused) 1.035f else 1.0f
+        }
     }
     private fun button(caption: String, action: () -> Unit) = Button(this).apply {
-        text = caption; isFocusable = true; setOnClickListener { action() }
+        text = caption; isFocusable = true
+        setOnFocusChangeListener { view, focused ->
+            view.alpha = if (focused) 1.0f else 0.88f
+            view.scaleX = if (focused) 1.025f else 1.0f
+            view.scaleY = if (focused) 1.025f else 1.0f
+        }
+        setOnClickListener { action() }
     }
     private fun setStatus(message: String) { status.text = message }
     private fun validPort(value: String): Int? = value.toIntOrNull()?.takeIf { it in 1..65535 }
