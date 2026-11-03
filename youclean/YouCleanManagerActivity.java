@@ -77,6 +77,7 @@ public final class YouCleanManagerActivity extends Activity {
         root.addView(title);
 
         TextView note = text("Xem ứng dụng, loại ứng dụng và trạng thái bật/tắt. Chọn một ứng dụng để mở trang thông tin hệ thống. "
+                + "Nhãn an toàn chỉ là cảnh báo sơ bộ; package chưa xác minh không được coi là an toàn để tắt. "
                 + "Bản này chưa tự vô hiệu hóa hoặc gỡ bất kỳ gói nào.", 14,
                 Color.rgb(190, 202, 218));
         LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, -2);
@@ -271,11 +272,74 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams stateLp = new LinearLayout.LayoutParams(-1, -2);
         stateLp.topMargin = dp(2);
         row.addView(stateView, stateLp);
+
+        String safety = safetyLabel(pkg, system);
+        int safetyColor = safety.startsWith("BẢO VỆ")
+                ? Color.rgb(255, 160, 120)
+                : Color.rgb(220, 195, 125);
+        TextView safetyView = text(safety, 12, safetyColor);
+        LinearLayout.LayoutParams safetyLp = new LinearLayout.LayoutParams(-1, -2);
+        safetyLp.topMargin = dp(2);
+        row.addView(safetyView, safetyLp);
         row.setOnClickListener(v -> openAppInfo(pkg));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.bottomMargin = dp(7);
         list.addView(row, lp);
+    }
+
+    /**
+     * Conservative, read-only guard labels adapted from upstream CleanYourTV safety checks.
+     * Unknown packages are never presented as safe to disable. Model-specific example lists
+     * must be matched to the actual TV before they can be considered.
+     */
+    private String safetyLabel(String pkg, boolean system) {
+        if (pkg == null || pkg.isEmpty()) return "CHƯA XÁC MINH · thiếu package";
+        String[] protectedExact = {
+                "android",
+                "com.android.systemui",
+                "com.android.shell",
+                "com.android.phone",
+                "com.android.settings",
+                "com.android.tv.settings",
+                "com.android.permissioncontroller",
+                "com.google.android.permissioncontroller",
+                "com.android.packageinstaller",
+                "com.google.android.packageinstaller",
+                "com.android.modulemetadata",
+                "com.android.sdksandbox",
+                "com.android.location.fused",
+                "com.google.android.tungsten.setupwraith",
+                "com.cltv.mal",
+                "com.mediatek.tis",
+                "com.mediatek.tv.service",
+                "com.mediatek.tv.agent"
+        };
+        for (String protectedPkg : protectedExact) {
+            if (protectedPkg.equals(pkg)) {
+                return "BẢO VỆ · thành phần Android/TV quan trọng";
+            }
+        }
+        String[] protectedPrefixes = {
+                "com.android.providers.",
+                "com.google.android.overlay.modules",
+                "com.mediatek.tv.",
+                "com.mediatek.tis."
+        };
+        for (String prefix : protectedPrefixes) {
+            if (pkg.startsWith(prefix)) {
+                return "BẢO VỆ · nhóm package hệ thống";
+            }
+        }
+        if (pkg.contains("launcher") || pkg.contains("tvhome")
+                || pkg.contains("homekey") || pkg.contains("home_key")) {
+            return "CẦN GIỮ · có thể liên quan màn hình Home";
+        }
+        if (pkg.contains("input") || pkg.contains("remote")
+                || pkg.contains("cec") || pkg.contains("hdmi")) {
+            return "CẦN KIỂM TRA · có thể liên quan điều khiển/HDMI";
+        }
+        return "CHƯA XÁC MINH · chưa đối chiếu đúng model TV";
     }
 
     private void createBackupFile() {
