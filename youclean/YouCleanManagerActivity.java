@@ -970,8 +970,12 @@ public final class YouCleanManagerActivity extends Activity {
             }
             String content = new String(buffer.toByteArray(), "UTF-8");
             JSONObject backup = new JSONObject(content);
-            if (!"youclean-app-list".equals(backup.optString("format"))
-                    || backup.optInt("version", -1) != 1) {
+            Object formatValue = backup.opt("format");
+            Object versionValue = backup.opt("version");
+            if (!(formatValue instanceof String)
+                    || !"youclean-app-list".equals(formatValue)
+                    || !(versionValue instanceof Number)
+                    || ((Number) versionValue).doubleValue() != 1.0d) {
                 throw new IllegalArgumentException("Định dạng hoặc phiên bản tệp sao lưu không được hỗ trợ.");
             }
             JSONArray saved = backup.optJSONArray("applications");
@@ -995,7 +999,12 @@ public final class YouCleanManagerActivity extends Activity {
                     invalidEntries++;
                     continue;
                 }
-                String pkg = item.optString("packageName", "").trim();
+                Object packageValue = item.opt("packageName");
+                if (!(packageValue instanceof String)) {
+                    invalidEntries++;
+                    continue;
+                }
+                String pkg = ((String) packageValue).trim();
                 if (!isPlausiblePackageName(pkg)) {
                     invalidEntries++;
                     continue;
