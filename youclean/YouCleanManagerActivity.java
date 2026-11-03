@@ -923,6 +923,8 @@ public final class YouCleanManagerActivity extends Activity {
             root.put("deviceModel", safeBuildValue(Build.MODEL));
             root.put("androidVersion", safeBuildValue(Build.VERSION.RELEASE));
             root.put("androidSdk", Build.VERSION.SDK_INT);
+            root.put("buildDisplay", safeBuildValue(Build.DISPLAY));
+            root.put("deviceFingerprint", safeBuildValue(Build.FINGERPRINT));
             JSONArray items = new JSONArray();
             for (ApplicationInfo app : applications) {
                 JSONObject item = new JSONObject();
@@ -1086,6 +1088,10 @@ public final class YouCleanManagerActivity extends Activity {
             if (!model.isEmpty()) label.append(model);
         }
         if (!android.isEmpty()) label.append(" · Android ").append(android);
+        Object buildValue = backup.opt("buildDisplay");
+        if (buildValue instanceof String && !((String) buildValue).trim().isEmpty()) {
+            label.append("\nBuild sao lưu: ").append(((String) buildValue).trim());
+        }
         Object sdkValue = backup.opt("androidSdk");
         if (sdkValue instanceof Number && ((Number) sdkValue).intValue() > 0) {
             label.append(" (API ").append(((Number) sdkValue).intValue()).append(")");
