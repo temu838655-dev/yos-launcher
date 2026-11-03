@@ -542,6 +542,11 @@ public final class YouCleanManagerActivity extends Activity {
      */
     private String safetyLabel(String pkg, boolean system) {
         if (pkg == null || pkg.isEmpty()) return "CHƯA XÁC MINH · thiếu package";
+        // Google TV SetupWraith can own saved Wi-Fi credentials; explain this
+        // specific risk before the generic protected-package classification.
+        if ("com.google.android.tungsten.setupwraith".equals(pkg)) {
+            return "BẢO VỆ · thành phần thiết lập Google TV, có thể quản lý Wi-Fi đã lưu";
+        }
         String[] protectedExact = {
                 "android",
                 "android.ext.services",
@@ -583,9 +588,6 @@ public final class YouCleanManagerActivity extends Activity {
             if (pkg.startsWith(prefix)) {
                 return "BẢO VỆ · nhóm package hệ thống";
             }
-        }
-        if ("com.google.android.tungsten.setupwraith".equals(pkg)) {
-            return "BẢO VỆ · có thể sở hữu Wi-Fi đã lưu trên Google TV";
         }
         if (pkg.contains("launcher") || pkg.contains("tvhome")
                 || pkg.contains("homekey") || pkg.contains("home_key")) {
