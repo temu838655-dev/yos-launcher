@@ -132,6 +132,22 @@ jobs:
           assert "jitpack.io" in s
           PY
 
+      - name: Restore standalone YouClean phone app module
+        run: |
+          mkdir -p upstream/launcher/phone/src/main/java/com/youclean/phone
+          cp youclean/phone/build.gradle upstream/launcher/phone/build.gradle
+          cp youclean/phone/AndroidManifest.xml upstream/launcher/phone/src/main/AndroidManifest.xml
+          cp youclean/phone/MainActivity.kt upstream/launcher/phone/src/main/java/com/youclean/phone/MainActivity.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("upstream/launcher/settings.gradle")
+          s = p.read_text()
+          if "include ':phone'" not in s:
+              s += "\\ninclude ':phone'\\n"
+              p.write_text(s)
+          assert "include ':phone'" in p.read_text()
+          PY
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
