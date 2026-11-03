@@ -172,9 +172,19 @@ class YouCleanAdbWifiActivity : Activity() {
                         client.shell("pm list packages").stdoutText
                     }
                 }
-                val packages = output.lineSequence().filter { it.startsWith("package:") }.toList()
+                val packages = output.lineSequence()
+                    .filter { it.startsWith("package:") }
+                    .map { it.removePrefix("package:").trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinct()
+                    .toList()
+                getSharedPreferences("youclean_adb", MODE_PRIVATE).edit()
+                    .putString("remote_ip", ip)
+                    .putStringSet("remote_packages", HashSet(packages))
+                    .putLong("remote_saved_at", System.currentTimeMillis())
+                    .apply()
                 setStatus("Đã kết nối ADB. Đọc được " + packages.size + " package (gồm ứng dụng người dùng và hệ thống):\n" +
-                    packages.take(120).joinToString("\n").ifBlank { "(TV không trả về package nào)" })
+                    packages.take(120).map { "package:" + it }.joinToString("\n").ifBlank { "(TV không trả về package nào)" })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
