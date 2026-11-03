@@ -3,6 +3,8 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.res.ColorStateList;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -20,6 +22,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -457,7 +460,7 @@ public final class YouCleanManagerActivity extends Activity {
         row.setOrientation(LinearLayout.VERTICAL);
         row.setTag(pkg);
         row.setFocusable(true);
-        row.setClickable(false);
+        row.setClickable(true);
         row.setBackgroundColor(Color.rgb(27, 34, 45));
         row.setPadding(dp(14), dp(10), dp(14), dp(10));
         row.setOnFocusChangeListener((v, focused) -> {
@@ -468,7 +471,7 @@ public final class YouCleanManagerActivity extends Activity {
         TextView name = text(pkg, 16, Color.WHITE);
         name.setTypeface(null, 1);
         row.addView(name);
-        TextView source = text("Package trên TV đã kết nối · dữ liệu ADB đã lưu", 12,
+        TextView source = text("Nhấn OK để sao chép package · dữ liệu ADB đã lưu", 12,
                 Color.rgb(174, 190, 208));
         LinearLayout.LayoutParams sourceLp = new LinearLayout.LayoutParams(-1, -2);
         sourceLp.topMargin = dp(3);
@@ -482,6 +485,15 @@ public final class YouCleanManagerActivity extends Activity {
         row.addView(safetyView, safetyLp);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.bottomMargin = dp(7);
+        row.setOnClickListener(v -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("YouClean package", pkg));
+                Toast.makeText(this, "Đã sao chép: " + pkg, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Không thể truy cập bộ nhớ tạm.", Toast.LENGTH_SHORT).show();
+            }
+        });
         list.addView(row, lp);
     }
 
