@@ -211,7 +211,7 @@ class MainActivity : Activity() {
                                 .filter { it.startsWith("package:") }
                                 .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.toSet()
                         } else emptySet()
-                        fun property(name: String): String =
+                        suspend fun property(name: String): String =
                             client.shell("getprop $name").stdoutText.trim().ifBlank { "Không rõ" }
                         val manufacturer = property("ro.product.manufacturer")
                         val model = property("ro.product.model")
