@@ -149,6 +149,19 @@ jobs:
           sed -i 's/<string name="app_name">Home<\/string>/<string name="app_name">YouClean<\/string>/' app/src/main/res/values/strings.xml
           grep -q '<string name="app_name">YouClean</string>' app/src/main/res/values/strings.xml
 
+      - name: Generate read-only upstream TV model catalog
+        run: |
+          python3 youclean/generate_model_catalog.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("upstream/launcher/app/src/main/assets/youclean/model_catalog.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          assert data["schemaVersion"] == 1
+          assert len(data["devices"]) >= 400, len(data["devices"])
+          print(f"Validated {len(data['devices'])} reference TV profiles")
+          PY
+
       - name: Build release APK
         working-directory: upstream/launcher
         run: |
