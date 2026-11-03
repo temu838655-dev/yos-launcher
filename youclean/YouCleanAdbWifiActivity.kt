@@ -20,7 +20,11 @@ class YouCleanAdbWifiActivity : Activity() {
     private lateinit var pairingCode: EditText
     private lateinit var connectPort: EditText
     private lateinit var status: TextView
+    private lateinit var pairButton: Button
+    private lateinit var connectButton: Button
     private lateinit var keyProvider: FileKeyProvider
+    private var operationInProgress = false
+    private var activityDestroyed = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density + 0.5f).toInt()
     private fun label(value: String, size: Float = 16f) = TextView(this).apply {
@@ -45,8 +49,20 @@ class YouCleanAdbWifiActivity : Activity() {
         }
         setOnClickListener { action() }
     }
-    private fun setStatus(message: String) { status.text = message }
+    private fun setStatus(message: String) {
+        if (!activityDestroyed && ::status.isInitialized) status.text = message
+    }
+
+    private fun setBusy(busy: Boolean) {
+        operationInProgress = busy
+        if (::pairButton.isInitialized) pairButton.isEnabled = !busy
+        if (::connectButton.isInitialized) connectButton.isEnabled = !busy
+    }
+
     private fun validPort(value: String): Int? = value.toIntOrNull()?.takeIf { it in 1..65535 }
+
+    private fun validIp(value: String): Boolean =
+        value.isNotBlank() && android.util.Patterns.IP_ADDRESS.matcher(value).matches()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,8 +106,10 @@ class YouCleanAdbWifiActivity : Activity() {
             root.addView(label(caption, 14f))
             root.addView(edit, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)))
         }
-        root.addView(button("1. Ghép đôi bằng mã 6 số") { pairDevice() })
-        root.addView(button("2. Kết nối ADB và đọc toàn bộ ứng dụng") { connectAndList() })
+        pairButton = button("1. Ghép đôi bằng mã 6 số") { pairDevice() }
+        connectButton = button("2. Kết nối ADB và đọc toàn bộ ứng dụng") { connectAndList() }
+        root.addView(pairButton)
+        root.addView(connectButton)
         status = label("Chưa kết nối. Chưa có lệnh nào được gửi tới TV.", 15f)
         root.addView(status)
         root.addView(label("Cổng ghép đôi và cổng kết nối là hai cổng khác nhau. Khóa ADB được lưu trong vùng riêng của YouClean. Bản thử nghiệm chỉ đọc danh sách package; không vô hiệu hóa hay gỡ ứng dụng.", 13f))
@@ -102,11 +120,16 @@ class YouCleanAdbWifiActivity : Activity() {
         val ip = host.text.toString().trim()
         val port = validPort(pairingPort.text.toString().trim())
         val code = pairingCode.text.toString().trim()
-        if (ip.isBlank() || port == null || !code.matches(Regex("\\d{6}"))) {
-            setStatus("Kiểm tra IP, cổng ghép đôi và mã gồm đúng 6 chữ số.")
+        if (!validIp(ip) || port == null || !code.matches(Regex("\\d{6}"))) {
+            setStatus("Kiểm tra địa chỉ IP, cổng ghép đôi (1–65535) và mã gồm đúng 6 chữ số.")
+            return
+        }
+        if (operationInProgress) {
+            setStatus("Một thao tác ADB khác đang chạy. Vui lòng đợi hoàn tất.")
             return
         }
         pairingCode.text.clear()
+        setBusy(true)
         setStatus("Đang thực hiện ghép đôi TLS…")
         scope.launch {
             try {
@@ -116,8 +139,12 @@ class YouCleanAdbWifiActivity : Activity() {
                 } else {
                     setStatus("Ghép đôi thất bại: " + (result.exceptionOrNull()?.message ?: "TV từ chối hoặc mã đã hết hạn"))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 setStatus("Lỗi ghép đôi: " + (e.message ?: e.javaClass.simpleName))
+            } finally {
+                setBusy(false)
             }
         }
     }
@@ -125,10 +152,15 @@ class YouCleanAdbWifiActivity : Activity() {
     private fun connectAndList() {
         val ip = host.text.toString().trim()
         val port = validPort(connectPort.text.toString().trim())
-        if (ip.isBlank() || port == null) {
-            setStatus("Nhập IP TV và cổng Wireless debugging hợp lệ.")
+        if (!validIp(ip) || port == null) {
+            setStatus("Nhập địa chỉ IP TV hợp lệ và cổng Wireless debugging (1–65535).")
             return
         }
+        if (operationInProgress) {
+            setStatus("Một thao tác ADB khác đang chạy. Vui lòng đợi hoàn tất.")
+            return
+        }
+        setBusy(true)
         setStatus("Đang kết nối TLS và đọc toàn bộ package (ứng dụng người dùng + hệ thống)…")
         scope.launch {
             try {
@@ -140,12 +172,20 @@ class YouCleanAdbWifiActivity : Activity() {
                 val packages = output.lineSequence().filter { it.startsWith("package:") }.toList()
                 setStatus("Đã kết nối ADB. Đọc được " + packages.size + " package (gồm ứng dụng người dùng và hệ thống):\n" +
                     packages.take(120).joinToString("\n").ifBlank { "(TV không trả về package nào)" })
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 setStatus("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) +
                     ". Kiểm tra lại cổng kết nối và ghép đôi.")
+            } finally {
+                setBusy(false)
             }
         }
     }
 
-    override fun onDestroy() { job.cancel(); super.onDestroy() }
+    override fun onDestroy() {
+        activityDestroyed = true
+        job.cancel()
+        super.onDestroy()
+    }
 }
