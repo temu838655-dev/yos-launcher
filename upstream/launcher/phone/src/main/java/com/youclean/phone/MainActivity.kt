@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     private lateinit var packagesView: TextView
     private lateinit var keyProvider: FileKeyProvider
     private var packageRows: List<String> = emptyList()
+    private var systemPackages: Set<String> = emptySet()
     private var showingAllPackages = false
     private var busy = false
 
@@ -83,7 +84,7 @@ class MainActivity : Activity() {
         root.addView(packagesView)
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
-            packageSearch.text.clear(); packageRows = emptyList(); showingAllPackages = false
+            packageSearch.text.clear(); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
             packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
@@ -95,8 +96,15 @@ class MainActivity : Activity() {
         packagesView.text = when {
             packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng."
             filtered.isEmpty() -> "Không tìm thấy package phù hợp."
-            else -> "Hiển thị ${filtered.size}/${packageRows.size} ${if (showingAllPackages) "package (gồm ứng dụng hệ thống)" else "ứng dụng người dùng"}:\n" +
-                filtered.mapIndexed { index, name -> "${index + 1}. $name" }.joinToString("\n")
+            else -> {
+                val userCount = packageRows.count { it !in systemPackages }
+                val systemCount = packageRows.size - userCount
+                "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\n" +
+                    filtered.mapIndexed { index, name ->
+                        val type = if (name in systemPackages) "[HỆ THỐNG]" else "[NGƯỜI DÙNG]"
+                        "${index + 1}. $type $name"
+                    }.joinToString("\n")
+            }
         }
     }
 
@@ -126,18 +134,28 @@ class MainActivity : Activity() {
         val p = port(connectPort.text.toString())
         if (host.isBlank() || p == null) { status("Nhập IP TV và cổng Wireless debugging hợp lệ."); return }
         showingAllPackages = includeSystem
-        setBusy(true, if (includeSystem) "Đang đọc toàn bộ package trên TV…" else "Đang đọc ứng dụng người dùng…")
+        setBusy(true, if (includeSystem) "Đang phân loại package hệ thống và ứng dụng người dùng…" else "Đang đọc ứng dụng người dùng…")
         scope.launch {
             try {
-                val command = if (includeSystem) "pm list packages" else "pm list packages -3"
-                val output = withContext(Dispatchers.IO) {
-                    AdbClient.connectTls(host, p, keyProvider).use { it.shell(command).stdoutText }
+                val result = withContext(Dispatchers.IO) {
+                    AdbClient.connectTls(host, p, keyProvider).use { client ->
+                        val userOutput = client.shell("pm list packages -3").stdoutText
+                        val users = userOutput.lineSequence().filter { it.startsWith("package:") }
+                            .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.toSet()
+                        val systems = if (includeSystem) {
+                            client.shell("pm list packages -s").stdoutText.lineSequence()
+                                .filter { it.startsWith("package:") }
+                                .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.toSet()
+                        } else emptySet()
+                        Pair(if (includeSystem) (users + systems).sorted() else users.sorted(), systems)
+                    }
                 }
-                packageRows = output.lineSequence().filter { it.startsWith("package:") }
-                    .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.distinct().sorted().toList()
+                packageRows = result.first
+                systemPackages = result.second
                 renderPackages()
-                val kind = if (includeSystem) "package tổng cộng (có cả package hệ thống)" else "ứng dụng người dùng"
-                status("Đã kết nối. Đọc được ${packageRows.size} $kind. Chỉ đọc dữ liệu, chưa thay đổi ứng dụng trên TV.")
+                val userCount = packageRows.count { it !in systemPackages }
+                val systemCount = packageRows.size - userCount
+                status("Đã kết nối. $userCount ứng dụng người dùng, $systemCount package hệ thống. Chỉ đọc dữ liệu, chưa thay đổi ứng dụng trên TV.")
             } catch (e: Exception) { status("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) + ". Kiểm tra lại IP, cổng và trạng thái ghép đôi.") }
             finally { busy = false }
         }
