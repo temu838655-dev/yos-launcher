@@ -143,7 +143,7 @@ jobs:
           p = Path("upstream/launcher/settings.gradle")
           s = p.read_text()
           if "include ':phone'" not in s:
-              s += "\\ninclude ':phone'\\n"
+              s += "\ninclude ':phone'\n"
               p.write_text(s)
           assert "include ':phone'" in p.read_text()
           PY
