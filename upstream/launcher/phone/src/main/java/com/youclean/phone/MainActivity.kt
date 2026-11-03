@@ -112,9 +112,9 @@ class MainActivity : Activity() {
                 val systemCount = packageRows.size - userCount
                 val protectedCount = packageRows.count { it in protectedPackages }
                 val unreviewedCount = packageRows.size - protectedCount
-                "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\\n" +
-                    "Cốt lõi cần giữ: $protectedCount | Chưa đánh giá: $unreviewedCount\\n" +
-                    "Phân loại chỉ mang tính nhận diện, KHÔNG có nghĩa package chưa đánh giá là an toàn để tắt.\\n" +
+                "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\n" +
+                    "Cốt lõi cần giữ: $protectedCount | Chưa đánh giá: $unreviewedCount\n" +
+                    "Phân loại chỉ mang tính nhận diện, KHÔNG có nghĩa package chưa đánh giá là an toàn để tắt.\n" +
                     filtered.mapIndexed { index, name ->
                         val type = when {
                             name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
