@@ -114,6 +114,17 @@ public final class YouCleanManagerActivity extends Activity {
         filterLp.topMargin = dp(8);
         root.addView(filters, filterLp);
 
+        Button refresh = new Button(this);
+        refresh.setText("Làm mới danh sách ứng dụng");
+        refresh.setTextSize(13);
+        refresh.setOnClickListener(v -> {
+            summary.setText("Đang cập nhật danh sách ứng dụng...");
+            loadApps();
+        });
+        LinearLayout.LayoutParams refreshLp = new LinearLayout.LayoutParams(-1, dp(44));
+        refreshLp.topMargin = dp(5);
+        root.addView(refresh, refreshLp);
+
         Button backup = new Button(this);
         backup.setText("Sao lưu danh sách ứng dụng (JSON)");
         backup.setTextSize(13);
