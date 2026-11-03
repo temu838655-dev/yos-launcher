@@ -43,8 +43,12 @@ public final class YouCleanManagerActivity extends Activity {
     private int selectedFilter = ALL;
     private String query = "";
     private LinearLayout list;
+    private ScrollView appScroll;
     private TextView summary;
     private List<ApplicationInfo> applications = new ArrayList<>();
+    private boolean resumedOnce = false;
+    private int savedListScrollY = 0;
+    private String focusedPackageBeforeRefresh = null;
     private final List<Button> filterButtons = new ArrayList<>();
     private static final int CREATE_BACKUP_FILE = 7101;
     private static final int OPEN_BACKUP_FILE = 7102;
@@ -56,6 +60,14 @@ public final class YouCleanManagerActivity extends Activity {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         buildUi();
         loadApps();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        // The first list load happens in onCreate. Refresh only after returning
+        // from Android's App info screen or another external activity.
+        if (resumedOnce) loadApps();
+        resumedOnce = true;
     }
 
     private int dp(float value) {
@@ -188,13 +200,13 @@ public final class YouCleanManagerActivity extends Activity {
         summaryLp.topMargin = dp(10);
         root.addView(summary, summaryLp);
 
-        ScrollView scroll = new ScrollView(this);
+        appScroll = new ScrollView(this);
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(list);
+        appScroll.addView(list);
         LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0, 1f);
         scrollLp.topMargin = dp(8);
-        root.addView(scroll, scrollLp);
+        root.addView(appScroll, scrollLp);
 
         setContentView(root);
     }
@@ -406,6 +418,18 @@ public final class YouCleanManagerActivity extends Activity {
 
     private void renderApps() {
         if (list == null || summary == null) return;
+        // Keep the current remote position when a filter/search/refresh rebuilds rows.
+        if (appScroll != null) savedListScrollY = appScroll.getScrollY();
+        focusedPackageBeforeRefresh = null;
+        if (list != null) {
+            for (int i = 0; i < list.getChildCount(); i++) {
+                View child = list.getChildAt(i);
+                if (child.hasFocus() && child.getTag() instanceof String) {
+                    focusedPackageBeforeRefresh = (String) child.getTag();
+                    break;
+                }
+            }
+        }
         list.removeAllViews();
         int total = 0;
         int shown = 0;
@@ -427,11 +451,28 @@ public final class YouCleanManagerActivity extends Activity {
             empty.setPadding(dp(12), dp(20), dp(12), dp(20));
             list.addView(empty);
         }
+        if (appScroll != null) {
+            final String restorePackage = focusedPackageBeforeRefresh;
+            final int restoreScrollY = savedListScrollY;
+            appScroll.post(() -> {
+                appScroll.scrollTo(0, restoreScrollY);
+                if (restorePackage != null && list != null) {
+                    for (int i = 0; i < list.getChildCount(); i++) {
+                        View child = list.getChildAt(i);
+                        if (restorePackage.equals(child.getTag())) {
+                            child.requestFocus();
+                            break;
+                        }
+                    }
+                }
+            });
+        }
     }
 
     private void addAppRow(ApplicationInfo app, String label, String pkg, boolean system) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
+        row.setTag(pkg);
         row.setFocusable(true);
         row.setClickable(true);
         row.setBackgroundColor(Color.rgb(27, 34, 45));
