@@ -138,8 +138,8 @@ class YouCleanAdbWifiActivity : Activity() {
                     }
                 }
                 val packages = output.lineSequence().filter { it.startsWith("package:") }.toList()
-                setStatus("Đã kết nối ADB. Tìm thấy " + packages.size + " ứng dụng:\n" +
-                    packages.take(80).joinToString("\n").ifBlank { "(TV không trả về package nào)" })
+                setStatus("Đã kết nối ADB. Đọc được " + packages.size + " package (gồm ứng dụng người dùng và hệ thống):\n" +
+                    packages.take(120).joinToString("\n").ifBlank { "(TV không trả về package nào)" })
             } catch (e: Exception) {
                 setStatus("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) +
                     ". Kiểm tra lại cổng kết nối và ghép đôi.")
