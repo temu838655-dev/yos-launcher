@@ -22,6 +22,7 @@ class MainActivity : Activity() {
     private lateinit var pairCode: EditText
     private lateinit var connectPort: EditText
     private lateinit var packageSearch: EditText
+    private lateinit var packageFilter: Spinner
     private lateinit var status: TextView
     private lateinit var deviceInfo: TextView
     private lateinit var packagesView: TextView
@@ -104,6 +105,15 @@ class MainActivity : Activity() {
             override fun afterTextChanged(s: Editable?) {}
         })
         root.addView(packageSearch, LinearLayout.LayoutParams(-1, dp(48)))
+        packageFilter = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("Tất cả package", "Ứng dụng người dùng", "Package hệ thống", "Package đã nhận diện cần giữ"))
+            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { renderPackages() }
+            }
+        }
+        root.addView(packageFilter, LinearLayout.LayoutParams(-1, dp(48)))
         packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package. Chưa package nào được xác nhận an toàn để tắt; không tự ý vô hiệu hóa ứng dụng.", 13f, Color.rgb(205, 214, 226))
         packagesView.setPadding(0, dp(10), 0, dp(4))
         packagesView.setTextIsSelectable(true)
@@ -112,7 +122,7 @@ class MainActivity : Activity() {
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
-            packageSearch.text.clear(); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
+            packageSearch.text.clear(); packageFilter.setSelection(0); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
             packagesView.text = "Chưa có dữ liệu."; deviceInfo.text = "Thông tin thiết bị: chưa đọc."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
@@ -146,7 +156,17 @@ class MainActivity : Activity() {
 
     private fun renderPackages() {
         val query = packageSearch.text.toString().trim()
-        val filtered = packageRows.filter { it.contains(query, ignoreCase = true) }
+        val selectedFilter = if (::packageFilter.isInitialized) packageFilter.selectedItemPosition else 0
+        val filtered = packageRows.filter { name ->
+            val matchesQuery = name.contains(query, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                1 -> name !in systemPackages
+                2 -> name in systemPackages
+                3 -> name in protectedPackages
+                else -> true
+            }
+            matchesQuery && matchesFilter
+        }
         packagesView.text = when {
             packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package; chưa có thao tác tắt hoặc gỡ ứng dụng."
             filtered.isEmpty() -> "Không tìm thấy package phù hợp."
