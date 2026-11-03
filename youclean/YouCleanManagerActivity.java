@@ -545,7 +545,10 @@ public final class YouCleanManagerActivity extends Activity {
         // Google TV SetupWraith can own saved Wi-Fi credentials; explain this
         // specific risk before the generic protected-package classification.
         if ("com.google.android.tungsten.setupwraith".equals(pkg)) {
-            return "BẢO VỆ · thành phần thiết lập Google TV, có thể quản lý Wi-Fi đã lưu";
+            return "BẢO VỆ · thành phần thiết lập Google TV, có thể quản lý Wi-Fi và Cast";
+        }
+        if ("com.mediatek.tvinput".equals(pkg)) {
+            return "BẢO VỆ · dịch vụ đầu vào TV, có thể điều khiển HDMI/AV";
         }
         String[] protectedExact = {
                 "android",
@@ -565,6 +568,7 @@ public final class YouCleanManagerActivity extends Activity {
                 "com.google.android.ext.services",
                 "com.google.android.ext.shared",
                 "com.android.modulemetadata",
+                "com.google.android.modulemetadata",
                 "com.android.sdksandbox",
                 "com.android.location.fused",
                 "com.google.android.tungsten.setupwraith",
