@@ -23,7 +23,7 @@ for tv_file in sorted(ROOT.glob("*/tv.json")):
         "ro.build.display.id", "ro.build.version.release", "ro.build.version.sdk",
     )
     for line in header.splitlines():
-        match = re.search(r"\\b(" + "|".join(map(re.escape, property_names)) + r")\\s*=\\s*(.*?)\\s*$", line, re.I)
+        match = re.search(r"\b(" + "|".join(map(re.escape, property_names)) + r")\s*=\s*(.*?)\s*$", line, re.I)
         if match:
             properties[match.group(1).lower()] = match.group(2).strip().strip("`'\\\"")
     fingerprint = properties.get("ro.build.fingerprint", "")
@@ -57,6 +57,12 @@ for tv_file in sorted(ROOT.glob("*/tv.json")):
         "source": f"upstream/examples/{folder.name}/",
     })
 
+property_records = sum(bool(record["properties"]) for record in records)
+if not records:
+    raise SystemExit("No TV profiles were generated")
+if property_records == 0:
+    raise SystemExit("No build properties were parsed; refusing to publish an unusable catalog")
+
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(json.dumps({
     "schemaVersion": 1,
@@ -64,4 +70,4 @@ OUT.write_text(json.dumps({
     "warning": "Reference only. A matching brand/model does not prove firmware compatibility or safety.",
     "devices": records,
 }, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
-print(f"Wrote {len(records)} device records to {OUT}")
+print(f"Wrote {len(records)} device records ({property_records} with parsed build properties) to {OUT}")
