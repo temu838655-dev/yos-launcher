@@ -1,4 +1,5 @@
 name: Vendor complete CleanYourTV source
+# Refresh the pinned upstream snapshot before building the downstream phone app.
 
 on:
   push:
