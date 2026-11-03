@@ -13,6 +13,16 @@ YouClean is an Android TV / Google TV launcher based on the upstream CleanYourTV
 
 The manager and ADB tools are opened from the launcher's Settings screen; they are not intended to appear as separate launcher icons.
 
+## TV model reference catalog
+
+The build generates a read-only catalog from the vendored upstream `upstream/examples/*/tv.json` and matching `debloat.txt` files. The current source snapshot contains 427 TV example profiles.
+
+- The in-app lookup ranks an exact Android build fingerprint above text matches.
+- Manufacturer, model, device, product and board terms are only used to suggest similar profiles when the fingerprint does not match.
+- A similar brand/model is not proof that the TV uses the same board, firmware, partition layout or package dependencies.
+- The catalog does not run upstream debloat scripts and does not apply, disable or uninstall any listed package.
+- Even an exact fingerprint match should be reviewed against the actual firmware before any maintenance action.
+
 ## Important limitations
 
 - ADB pairing and TLS connection have passed CI compilation, but still require testing against real TV firmware and network configurations.
