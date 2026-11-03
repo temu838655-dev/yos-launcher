@@ -98,6 +98,8 @@ class MainActivity : Activity() {
         root.addView(status.apply { setPadding(0, dp(12), 0, dp(8)) })
         deviceInfo = label("Thông tin thiết bị: chưa đọc.", 13f, Color.rgb(180, 200, 220))
         root.addView(deviceInfo.apply { setPadding(0, dp(4), 0, dp(8)) })
+        root.addView(action("Sao chép thông tin thiết bị") { copyDeviceInfo() },
+            LinearLayout.LayoutParams(-1, dp(44)).apply { bottomMargin = dp(6) })
         root.addView(label("Danh sách ứng dụng", 18f).apply { setTypeface(null, 1); setPadding(0, dp(8), 0, dp(6)) })
         packageSearch = field("Tìm theo tên package…")
         packageSearch.addTextChangedListener(object : TextWatcher {
@@ -132,6 +134,17 @@ class MainActivity : Activity() {
             packagesView.text = "Chưa có dữ liệu."; deviceInfo.text = "Thông tin thiết bị: chưa đọc."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+    }
+
+    private fun copyDeviceInfo() {
+        val content = deviceInfo.text?.toString().orEmpty()
+        if (content.isBlank() || content.contains("chưa đọc", ignoreCase = true)) {
+            Toast.makeText(this, "Chưa có thông tin thiết bị để sao chép.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("YouClean device info", content))
+        Toast.makeText(this, "Đã sao chép thông tin thiết bị.", Toast.LENGTH_SHORT).show()
     }
 
     private fun copyPackageList() {
