@@ -309,7 +309,8 @@ class MainActivity : Activity() {
                         val model = property("ro.product.model")
                         val device = property("ro.product.device")
                         val androidVersion = property("ro.build.version.release")
-                        val info = "Thiết bị: $manufacturer $model\nMã thiết bị: $device\nAndroid: $androidVersion"
+                        val sdk = property("ro.build.version.sdk")
+                        val info = "Thiết bị: $manufacturer $model\nMã thiết bị: $device\nAndroid: $androidVersion (API $sdk)\nĐịa chỉ TV: $host"
                         Triple(if (includeSystem) (users + systems).sorted() else users.sorted(), systems, info)
                     }
                 }
