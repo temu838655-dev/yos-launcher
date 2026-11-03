@@ -1,0 +1,51 @@
+name: Vendor complete CleanYourTV source
+
+on:
+  push:
+    branches: [feature/adb-wifi-prototype]
+    paths:
+      - ".github/workflows/vendor-cleanyourtv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vendor-cleanyourtv-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout YouClean repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch complete upstream repository
+        run: |
+          git clone --depth 1 https://github.com/Gathin23/cleanyourtv.git /tmp/cleanyourtv
+          UPSTREAM_SHA="$(git -C /tmp/cleanyourtv rev-parse HEAD)"
+          echo "$UPSTREAM_SHA" > UPSTREAM_COMMIT
+          rm -rf upstream
+          mkdir -p upstream
+          cp -a /tmp/cleanyourtv/. upstream/
+          rm -rf upstream/.git
+          echo "Vendored Gathin23/CleanYourTV at $UPSTREAM_SHA"
+          test -f upstream/LICENSE
+          test -f upstream/launcher/gradlew
+          test -d upstream/addons
+          test -d upstream/examples
+
+      - name: Commit complete upstream source snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A upstream UPSTREAM_COMMIT
+          if git diff --cached --quiet; then
+            echo "Upstream snapshot is already current."
+            exit 0
+          fi
+          git commit -m "Vendor complete Gathin23 CleanYourTV source"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
