@@ -117,7 +117,11 @@ class MainActivity : Activity() {
         packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package. Chưa package nào được xác nhận an toàn để tắt; không tự ý vô hiệu hóa ứng dụng.", 13f, Color.rgb(205, 214, 226))
         packagesView.setPadding(0, dp(10), 0, dp(4))
         packagesView.setTextIsSelectable(true)
+        packagesView.setOnClickListener { openPackagePicker() }
         root.addView(packagesView)
+        root.addView(label("Chạm vào khu vực danh sách để xem chi tiết từng package.", 12f, Color.LTGRAY).apply {
+            setPadding(0, dp(2), 0, dp(4))
+        })
         root.addView(action("Sao chép danh sách đang hiển thị") { copyPackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
@@ -189,6 +193,55 @@ class MainActivity : Activity() {
                     }.joinToString("\n")
             }
         }
+    }
+
+    private fun visiblePackages(): List<String> {
+        val query = packageSearch.text.toString().trim()
+        val selectedFilter = if (::packageFilter.isInitialized) packageFilter.selectedItemPosition else 0
+        return packageRows.filter { name ->
+            val matchesQuery = name.contains(query, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                1 -> name !in systemPackages
+                2 -> name in systemPackages
+                3 -> name in protectedPackages
+                else -> true
+            }
+            matchesQuery && matchesFilter
+        }
+    }
+
+    private fun openPackagePicker() {
+        val names = visiblePackages()
+        if (names.isEmpty()) {
+            Toast.makeText(this, "Không có package phù hợp để xem.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Chọn package để xem chi tiết")
+            .setItems(names.toTypedArray()) { _, which -> showPackageDetails(names[which]) }
+            .setNegativeButton("Đóng", null)
+            .show()
+    }
+
+    private fun showPackageDetails(name: String) {
+        val type = when {
+            name in protectedPackages -> "ĐÃ NHẬN DIỆN CẦN GIỮ (danh sách bảo vệ một phần)"
+            name in systemPackages -> "PACKAGE HỆ THỐNG - CHƯA ĐÁNH GIÁ"
+            else -> "ỨNG DỤNG NGƯỜI DÙNG - CHƯA ĐÁNH GIÁ"
+        }
+        val detail = "Tên package:\n$name\n\nPhân loại:\n$type\n\n" +
+            "Đánh giá an toàn: CHƯA XÁC MINH. Không thể kết luận package này an toàn để tắt chỉ dựa vào tên.\n\n" +
+            "Phiên bản hiện tại chỉ đọc danh sách package; không tắt, gỡ hoặc thay đổi ứng dụng trên TV."
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Chi tiết package")
+            .setMessage(detail)
+            .setPositiveButton("Sao chép tên") { _, _ ->
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Android package", name))
+                Toast.makeText(this, "Đã sao chép tên package.", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Đóng", null)
+            .show()
     }
 
     private fun setBusy(value: Boolean, message: String) { busy = value; status(message) }
