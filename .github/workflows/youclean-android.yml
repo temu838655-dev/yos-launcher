@@ -114,9 +114,12 @@ jobs:
               "META-INF/versions/17/OSGI-INF/MANIFEST.MF",
               "META-INF/versions/**/OSGI-INF/MANIFEST.MF",
           ]
-          for duplicate in duplicate_patterns:
-              if duplicate not in s:
-                  s = s.replace("'DebugProbesKt.bin']", "'DebugProbesKt.bin', '" + duplicate + "']")
+          marker = "'DebugProbesKt.bin'"
+          missing = [pattern for pattern in duplicate_patterns if pattern not in s]
+          if missing:
+              if marker not in s:
+                  raise SystemExit("Expected Android packaging excludes marker not found")
+              s = s.replace(marker, marker + ", " + ", ".join("'" + pattern + "'" for pattern in missing), 1)
           app.write_text(s)
           settings = Path("settings.gradle")
           s = settings.read_text()
