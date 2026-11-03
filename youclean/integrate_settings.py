@@ -20,6 +20,9 @@ if "YouClean · Quản lý ứng dụng và sao lưu" not in text:
         managerEntry.setClickable(true);
         managerEntry.setPadding(24, 22, 24, 22);
         managerEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
+        managerEntry.setOnFocusChangeListener((v, focused) ->
+                v.setBackgroundColor(focused ? android.graphics.Color.rgb(58, 92, 130)
+                        : android.graphics.Color.rgb(35, 45, 58)));
         android.widget.LinearLayout.LayoutParams managerParams =
                 new android.widget.LinearLayout.LayoutParams(-1, -2);
         managerParams.topMargin = 20;
@@ -35,6 +38,9 @@ if "YouClean · Quản lý ứng dụng và sao lưu" not in text:
         adbEntry.setClickable(true);
         adbEntry.setPadding(24, 22, 24, 22);
         adbEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
+        adbEntry.setOnFocusChangeListener((v, focused) ->
+                v.setBackgroundColor(focused ? android.graphics.Color.rgb(58, 92, 130)
+                        : android.graphics.Color.rgb(35, 45, 58)));
         android.widget.LinearLayout.LayoutParams adbParams =
                 new android.widget.LinearLayout.LayoutParams(-1, -2);
         adbParams.topMargin = 10;
