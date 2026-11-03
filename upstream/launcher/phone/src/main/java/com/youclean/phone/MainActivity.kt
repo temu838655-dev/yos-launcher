@@ -74,6 +74,7 @@ class MainActivity : Activity() {
         pairPort = field("Cổng ghép đôi (Pairing port)", true)
         pairCode = field("Mã ghép đôi 6 chữ số", true)
         connectPort = field("Cổng Wireless debugging (Connect port)", true)
+        restoreConnectionFields()
         listOf("2. Nhập thông tin TV" to ip, "Cổng ghép đôi" to pairPort, "Mã 6 số trên TV" to pairCode, "Cổng kết nối hiển thị trên TV" to connectPort).forEach { (caption, edit) ->
             root.addView(label(caption, 13f, Color.LTGRAY).apply { setPadding(0, dp(10), 0, dp(4)) })
             root.addView(edit, LinearLayout.LayoutParams(-1, dp(52)))
@@ -98,6 +99,7 @@ class MainActivity : Activity() {
         root.addView(action("Sao chép danh sách đang hiển thị") { copyPackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
+            getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
             packageSearch.text.clear(); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
             packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
@@ -113,6 +115,21 @@ class MainActivity : Activity() {
         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("YouClean package list", content))
         Toast.makeText(this, "Đã sao chép danh sách package.", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun restoreConnectionFields() {
+        val prefs = getSharedPreferences("youclean_connection", MODE_PRIVATE)
+        ip.setText(prefs.getString("ip", ""))
+        pairPort.setText(prefs.getString("pair_port", ""))
+        connectPort.setText(prefs.getString("connect_port", ""))
+    }
+
+    private fun saveConnectionFields() {
+        getSharedPreferences("youclean_connection", MODE_PRIVATE).edit()
+            .putString("ip", ip.text.toString().trim())
+            .putString("pair_port", pairPort.text.toString().trim())
+            .putString("connect_port", connectPort.text.toString().trim())
+            .apply()
     }
 
     private fun renderPackages() {
@@ -151,6 +168,7 @@ class MainActivity : Activity() {
             status("Vui lòng kiểm tra IP, cổng ghép đôi và mã đúng 6 chữ số."); return
         }
         pairCode.text.clear()
+        saveConnectionFields()
         setBusy(true, "Đang ghép đôi bảo mật với TV…")
         scope.launch {
             try {
@@ -167,6 +185,7 @@ class MainActivity : Activity() {
         val p = port(connectPort.text.toString())
         if (host.isBlank() || p == null) { status("Nhập IP TV và cổng Wireless debugging hợp lệ."); return }
         showingAllPackages = includeSystem
+        saveConnectionFields()
         setBusy(true, if (includeSystem) "Đang phân loại package hệ thống và ứng dụng người dùng…" else "Đang đọc ứng dụng người dùng…")
         scope.launch {
             try {
