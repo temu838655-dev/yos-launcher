@@ -3,6 +3,8 @@ package com.youclean.phone
 import android.app.Activity
 import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.*
 import io.github.rhythmcache.adb.AdbClient
 import io.github.rhythmcache.adb.FileKeyProvider
@@ -17,9 +19,11 @@ class MainActivity : Activity() {
     private lateinit var pairPort: EditText
     private lateinit var pairCode: EditText
     private lateinit var connectPort: EditText
+    private lateinit var packageSearch: EditText
     private lateinit var status: TextView
     private lateinit var packagesView: TextView
     private lateinit var keyProvider: FileKeyProvider
+    private var packageRows: List<String> = emptyList()
     private var busy = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density + .5f).toInt()
@@ -65,13 +69,33 @@ class MainActivity : Activity() {
         status = label("Chưa kết nối TV.", 14f, Color.rgb(255, 210, 140))
         root.addView(status.apply { setPadding(0, dp(12), 0, dp(8)) })
         root.addView(label("Danh sách ứng dụng", 18f).apply { setTypeface(null, 1); setPadding(0, dp(8), 0, dp(6)) })
+        packageSearch = field("Tìm theo tên package…")
+        packageSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { renderPackages() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        root.addView(packageSearch, LinearLayout.LayoutParams(-1, dp(48)))
         packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng.", 13f, Color.rgb(205, 214, 226))
+        packagesView.setPadding(0, dp(10), 0, dp(4))
         root.addView(packagesView)
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
+            packageSearch.text.clear(); packageRows = emptyList()
             packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+    }
+
+    private fun renderPackages() {
+        val query = packageSearch.text.toString().trim()
+        val filtered = packageRows.filter { it.contains(query, ignoreCase = true) }
+        packagesView.text = when {
+            packageRows.isEmpty() -> "Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package, chưa tắt hoặc gỡ ứng dụng."
+            filtered.isEmpty() -> "Không tìm thấy package phù hợp."
+            else -> "Hiển thị ${filtered.size}/${packageRows.size} ứng dụng người dùng:\n" +
+                filtered.mapIndexed { index, name -> "${index + 1}. $name" }.joinToString("\n")
+        }
     }
 
     private fun setBusy(value: Boolean, message: String) { busy = value; status(message) }
@@ -105,9 +129,10 @@ class MainActivity : Activity() {
                 val output = withContext(Dispatchers.IO) {
                     AdbClient.connectTls(host, p, keyProvider).use { it.shell("pm list packages -3").stdoutText }
                 }
-                val rows = output.lineSequence().filter { it.startsWith("package:") }.map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.toList()
-                packagesView.text = if (rows.isEmpty()) "TV không trả về ứng dụng người dùng." else rows.mapIndexed { index, name -> "${index + 1}. $name" }.joinToString("\\n")
-                status("Đã kết nối. Tìm thấy ${rows.size} ứng dụng người dùng.")
+                packageRows = output.lineSequence().filter { it.startsWith("package:") }
+                    .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+                renderPackages()
+                status("Đã kết nối. Tìm thấy ${packageRows.size} ứng dụng người dùng. Chế độ hiện tại chỉ đọc dữ liệu.")
             } catch (e: Exception) { status("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) + ". Kiểm tra lại IP, cổng và trạng thái ghép đôi.") }
             finally { busy = false }
         }
