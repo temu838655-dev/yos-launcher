@@ -109,9 +109,14 @@ jobs:
               s = s.replace("dependencies {", "dependencies {\n    implementation 'com.github.rhythmcache:adb-kt:v1.0.6'", 1)
           if "kotlinx-coroutines-android" not in s:
               s = s.replace("dependencies {", "dependencies {\n    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'", 1)
-          duplicate = "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
-          if duplicate not in s:
-              s = s.replace("'DebugProbesKt.bin']", "'DebugProbesKt.bin', '" + duplicate + "']")
+          duplicate_patterns = [
+              "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+              "META-INF/versions/17/OSGI-INF/MANIFEST.MF",
+              "META-INF/versions/**/OSGI-INF/MANIFEST.MF",
+          ]
+          for duplicate in duplicate_patterns:
+              if duplicate not in s:
+                  s = s.replace("'DebugProbesKt.bin']", "'DebugProbesKt.bin', '" + duplicate + "']")
           app.write_text(s)
           settings = Path("settings.gradle")
           s = settings.read_text()
