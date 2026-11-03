@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -44,6 +45,7 @@ public final class YouCleanManagerActivity extends Activity {
     private LinearLayout list;
     private TextView summary;
     private List<ApplicationInfo> applications = new ArrayList<>();
+    private final List<Button> filterButtons = new ArrayList<>();
     private static final int CREATE_BACKUP_FILE = 7101;
     private static final int OPEN_BACKUP_FILE = 7102;
 
@@ -212,18 +214,39 @@ public final class YouCleanManagerActivity extends Activity {
         Button button = new Button(this);
         button.setText(label);
         button.setTextSize(12);
+        button.setFocusable(true);
+        filterButtons.add(button);
         button.setOnFocusChangeListener((v, focused) -> {
-            v.setAlpha(focused ? 1.0f : 0.88f);
+            v.setAlpha(focused ? 1.0f : 0.92f);
             v.setScaleX(focused ? 1.04f : 1.0f);
             v.setScaleY(focused ? 1.04f : 1.0f);
+            updateFilterButtonStyle(button, filter, focused);
         });
         button.setOnClickListener(v -> {
             selectedFilter = filter;
+            updateAllFilterButtonStyles();
             renderApps();
         });
+        updateFilterButtonStyle(button, filter, false);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(46), 1f);
         lp.setMargins(dp(3), 0, dp(3), 0);
         parent.addView(button, lp);
+    }
+
+    private void updateFilterButtonStyle(Button button, int filter, boolean focused) {
+        boolean selected = selectedFilter == filter;
+        int background = selected
+                ? (focused ? Color.rgb(48, 112, 166) : Color.rgb(35, 83, 125))
+                : (focused ? Color.rgb(65, 78, 96) : Color.rgb(40, 49, 62));
+        button.setBackgroundTintList(ColorStateList.valueOf(background));
+        button.setTextColor(selected ? Color.WHITE : Color.rgb(205, 215, 228));
+    }
+
+    private void updateAllFilterButtonStyles() {
+        for (int i = 0; i < filterButtons.size(); i++) {
+            updateFilterButtonStyle(filterButtons.get(i), i == 0 ? ALL : (i == 1 ? USER : SYSTEM),
+                    filterButtons.get(i).hasFocus());
+        }
     }
 
     private String deviceIdentityText() {
