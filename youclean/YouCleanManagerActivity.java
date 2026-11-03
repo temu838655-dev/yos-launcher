@@ -980,6 +980,7 @@ public final class YouCleanManagerActivity extends Activity {
             java.util.LinkedHashSet<String> uniqueSaved = new java.util.LinkedHashSet<>();
             java.util.LinkedHashSet<String> missing = new java.util.LinkedHashSet<>();
             int invalidEntries = 0;
+            int duplicateEntries = 0;
             for (int i = 0; i < saved.length(); i++) {
                 JSONObject item = saved.optJSONObject(i);
                 if (item == null) {
@@ -991,15 +992,27 @@ public final class YouCleanManagerActivity extends Activity {
                     invalidEntries++;
                     continue;
                 }
-                if (!uniqueSaved.add(pkg)) continue;
+                if (!uniqueSaved.add(pkg)) {
+                    duplicateEntries++;
+                    continue;
+                }
                 if (!installed.contains(pkg)) missing.add(pkg);
+            }
+
+            if (uniqueSaved.isEmpty()) {
+                summary.setText("Tệp không chứa package hợp lệ để đối chiếu. "
+                        + "Mục không hợp lệ: " + invalidEntries
+                        + " · Mục trùng lặp: " + duplicateEntries
+                        + ". Hãy chọn tệp sao lưu YouClean khác.");
+                return;
             }
             int installedCount = uniqueSaved.size() - missing.size();
 
             if (missing.isEmpty()) {
                 summary.setText("Đã đối chiếu " + uniqueSaved.size()
                         + " package hợp lệ: không phát hiện package nào bị thiếu. "
-                        + (invalidEntries > 0 ? "Bỏ qua " + invalidEntries + " mục không hợp lệ. " : "")
+                        + (invalidEntries > 0 ? "Mục lỗi: " + invalidEntries + ". " : "")
+                        + (duplicateEntries > 0 ? "Mục trùng lặp: " + duplicateEntries + ". " : "")
                         + "Không có ứng dụng nào được cài đặt hoặc thay đổi.");
             } else {
                 StringBuilder report = new StringBuilder();
@@ -1008,6 +1021,9 @@ public final class YouCleanManagerActivity extends Activity {
                         .append(" · Còn thiếu: ").append(missing.size());
                 if (invalidEntries > 0) {
                     report.append(" · Mục lỗi: ").append(invalidEntries);
+                }
+                if (duplicateEntries > 0) {
+                    report.append(" · Mục trùng lặp: ").append(duplicateEntries);
                 }
                 report.append("\n");
                 int count = 0;
