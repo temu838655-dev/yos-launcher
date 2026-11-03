@@ -439,11 +439,15 @@ class MainActivity : Activity() {
                         suspend fun property(name: String): String =
                             client.shell("getprop $name").stdoutText.trim().ifBlank { "Không rõ" }
                         val manufacturer = property("ro.product.manufacturer")
+                        val brand = property("ro.product.brand")
                         val model = property("ro.product.model")
+                        val product = property("ro.product.name")
                         val device = property("ro.product.device")
                         val androidVersion = property("ro.build.version.release")
                         val sdk = property("ro.build.version.sdk")
-                        val info = "Thiết bị: $manufacturer $model\nMã thiết bị: $device\nAndroid: $androidVersion (API $sdk)\nĐịa chỉ TV: $host"
+                        val buildId = property("ro.build.display.id")
+                        val fingerprint = property("ro.build.fingerprint")
+                        val info = "Hãng: $manufacturer\nBrand: $brand\nModel: $model\nProduct: $product\nDevice: $device\nAndroid: $androidVersion (API $sdk)\nBuild: $buildId\nFingerprint: $fingerprint\nĐịa chỉ TV: $host"
                         Triple(if (includeSystem) (users + systems).sorted() else users.sorted(), systems, info)
                     }
                 }
