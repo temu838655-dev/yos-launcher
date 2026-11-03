@@ -168,9 +168,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: YouClean-Android-TV
+          name: YouClean-Android-Phone-and-TV
           path: |
-            dist/YouClean-Phone.apk
-            dist/YouClean-TV.apk
             dist/YouClean-Phone.apk
             dist/YouClean-TV.apk
             dist/YouClean.apk
@@ -188,6 +187,8 @@ jobs:
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
+            dist/YouClean-Phone.apk
+            dist/YouClean-TV.apk
             dist/YouClean.apk
             dist/YouClean-upstream-source.zip
             dist/SHA256SUMS.txt
