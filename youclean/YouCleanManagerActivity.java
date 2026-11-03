@@ -862,21 +862,24 @@ public final class YouCleanManagerActivity extends Activity {
         String time = savedAt > 0L
                 ? android.text.format.DateFormat.format("dd/MM/yyyy HH:mm", savedAt).toString()
                 : "không rõ thời điểm";
-        try (OutputStream out = getContentResolver().openOutputStream(uri);
-             OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8")) {
+        try {
+            OutputStream out = getContentResolver().openOutputStream(uri);
             if (out == null) throw new IllegalStateException("Không mở được tệp đã chọn.");
-            writer.write("# YouClean - danh sách package TV đã đọc qua ADB\n");
-            writer.write("# TV: " + ip + "\n");
-            writer.write("# Thời điểm đọc: " + time + "\n");
-            writer.write("# Tổng package: " + sorted.size() + "\n");
-            writer.write("# Đây là dữ liệu đã lưu, không phải kết nối TV trực tiếp.\n\n");
-            for (String pkg : sorted) {
-                writer.write(pkg);
-                writer.write("\n");
+            try (OutputStream stream = out;
+                 OutputStreamWriter writer = new OutputStreamWriter(stream, "UTF-8")) {
+                writer.write("# YouClean - danh sách package TV đã đọc qua ADB\n");
+                writer.write("# TV: " + ip + "\n");
+                writer.write("# Thời điểm đọc: " + time + "\n");
+                writer.write("# Tổng package: " + sorted.size() + "\n");
+                writer.write("# Đây là dữ liệu đã lưu, không phải kết nối TV trực tiếp.\n\n");
+                for (String pkg : sorted) {
+                    writer.write(pkg);
+                    writer.write("\n");
+                }
+                writer.flush();
+                summary.setText("Đã xuất " + sorted.size()
+                        + " package TV thành tệp TXT. Dữ liệu lấy từ bản lưu ADB gần nhất.");
             }
-            writer.flush();
-            summary.setText("Đã xuất " + sorted.size()
-                    + " package TV thành tệp TXT. Dữ liệu lấy từ bản lưu ADB gần nhất.");
         } catch (Exception e) {
             summary.setText("Xuất danh sách package thất bại: " + e.getMessage());
         }
