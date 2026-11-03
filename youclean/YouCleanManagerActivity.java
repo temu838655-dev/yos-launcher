@@ -334,6 +334,8 @@ public final class YouCleanManagerActivity extends Activity {
         if (pkg == null || pkg.isEmpty()) return "CHƯA XÁC MINH · thiếu package";
         String[] protectedExact = {
                 "android",
+                "android.ext.services",
+                "android.ext.shared",
                 "com.android.systemui",
                 "com.android.shell",
                 "com.android.phone",
@@ -343,6 +345,10 @@ public final class YouCleanManagerActivity extends Activity {
                 "com.google.android.permissioncontroller",
                 "com.android.packageinstaller",
                 "com.google.android.packageinstaller",
+                "com.android.ext.services",
+                "com.android.ext.shared",
+                "com.google.android.ext.services",
+                "com.google.android.ext.shared",
                 "com.android.modulemetadata",
                 "com.android.sdksandbox",
                 "com.android.location.fused",
@@ -367,6 +373,9 @@ public final class YouCleanManagerActivity extends Activity {
             if (pkg.startsWith(prefix)) {
                 return "BẢO VỆ · nhóm package hệ thống";
             }
+        }
+        if ("com.google.android.tungsten.setupwraith".equals(pkg)) {
+            return "BẢO VỆ · có thể sở hữu Wi-Fi đã lưu trên Google TV";
         }
         if (pkg.contains("launcher") || pkg.contains("tvhome")
                 || pkg.contains("homekey") || pkg.contains("home_key")) {
