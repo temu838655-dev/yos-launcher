@@ -987,7 +987,7 @@ public final class YouCleanManagerActivity extends Activity {
                     continue;
                 }
                 String pkg = item.optString("packageName", "").trim();
-                if (pkg.isEmpty()) {
+                if (!isPlausiblePackageName(pkg)) {
                     invalidEntries++;
                     continue;
                 }
@@ -1024,6 +1024,25 @@ public final class YouCleanManagerActivity extends Activity {
         } catch (Exception e) {
             summary.setText("Không thể đọc bản sao lưu: " + e.getMessage());
         }
+    }
+
+    /** Reject malformed package identifiers from imported backup files. */
+    private boolean isPlausiblePackageName(String packageName) {
+        if (packageName == null || packageName.length() > 255) return false;
+        String[] parts = packageName.split("\\.", -1);
+        if (parts.length < 2) return false;
+        for (String part : parts) {
+            if (part.isEmpty() || !isPackageIdentifierStart(part.charAt(0))) return false;
+            for (int i = 1; i < part.length(); i++) {
+                char ch = part.charAt(i);
+                if (!isPackageIdentifierStart(ch) && (ch < '0' || ch > '9')) return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isPackageIdentifierStart(char ch) {
+        return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_';
     }
 
     private void openAppInfo(String packageName) {
