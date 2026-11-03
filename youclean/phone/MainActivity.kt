@@ -232,17 +232,17 @@ class MainActivity : Activity() {
             ).take(8)
             val result = buildString {
                 appendLine("KẾT QUẢ TRA CỨU HỒ SƠ TV")
-                appendLine("Danh mục: \${devices.length()} hồ sơ tham chiếu từ CleanYourTV.")
-                appendLine("Thiết bị hiện tại: \${brand.ifBlank { "Không rõ hãng" }} \${model.ifBlank { "" }}")
-                appendLine("Product: \${product.ifBlank { "Không rõ" }} · Device: \${device.ifBlank { "Không rõ" }}")
+                appendLine("Danh mục: ${devices.length()} hồ sơ tham chiếu từ CleanYourTV.")
+                appendLine("Thiết bị hiện tại: ${brand.ifBlank { "Không rõ hãng" }} ${model.ifBlank { "" }}")
+                appendLine("Product: ${product.ifBlank { "Không rõ" }} · Device: ${device.ifBlank { "Không rõ" }}")
                 appendLine()
                 if (sorted.isEmpty()) {
                     appendLine("Chưa tìm thấy hồ sơ cùng hãng/model trong danh mục.")
                 } else {
-                    appendLine("Có \${candidates.size} hồ sơ liên quan; hiển thị tối đa 8:")
+                    appendLine("Có ${candidates.size} hồ sơ liên quan; hiển thị tối đa 8:")
                     appendLine()
                     sorted.forEachIndexed { index, item ->
-                        appendLine("\${index + 1}. \${item.second}")
+                        appendLine("${index + 1}. ${item.second}")
                     }
                 }
                 appendLine()
@@ -263,7 +263,7 @@ class MainActivity : Activity() {
                     Toast.makeText(this, "Đã sao chép kết quả tra cứu.", Toast.LENGTH_SHORT).show()
                 }
                 .show()
-            status("Đã tra cứu \${candidates.size} hồ sơ tham chiếu. Chỉ đối chiếu, không thay đổi TV.")
+            status("Đã tra cứu ${candidates.size} hồ sơ tham chiếu. Chỉ đối chiếu, không thay đổi TV.")
         } catch (e: Exception) {
             val message = "Không thể đọc danh mục hồ sơ TV: " +
                 (e.message ?: e.javaClass.simpleName) +
