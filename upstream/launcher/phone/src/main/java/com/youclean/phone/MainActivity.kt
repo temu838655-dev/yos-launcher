@@ -260,9 +260,56 @@ class MainActivity : Activity() {
             name in systemPackages -> "PACKAGE HỆ THỐNG - CHƯA ĐÁNH GIÁ"
             else -> "ỨNG DỤNG NGƯỜI DÙNG - CHƯA ĐÁNH GIÁ"
         }
+        if (!name.matches(Regex("[A-Za-z0-9_.]+"))) {
+            Toast.makeText(this, "Tên package không hợp lệ.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val host = ip.text.toString().trim()
+        val connect = port(connectPort.text.toString())
+        if (host.isBlank() || connect == null) {
+            showPackageDetailsDialog(name, type, "Chưa có kết nối để đọc thông tin chi tiết.")
+            return
+        }
+        setBusy(true, "Đang đọc thông tin package $name…")
+        scope.launch {
+            try {
+                val details = withContext(Dispatchers.IO) {
+                    AdbClient.connectTls(host, connect, keyProvider).use { client ->
+                        val pathOutput = client.shell("pm path $name").stdoutText
+                        val dump = client.shell("dumpsys package $name").stdoutText
+                        fun value(pattern: String): String =
+                            Regex(pattern, RegexOption.MULTILINE).find(dump)?.groupValues?.getOrNull(1)?.trim()
+                                ?.takeIf { it.isNotEmpty() } ?: "Không rõ"
+                        val paths = pathOutput.lineSequence()
+                            .filter { it.startsWith("package:") }
+                            .map { it.removePrefix("package:").trim() }
+                            .filter { it.isNotEmpty() }
+                            .toList()
+                        buildString {
+                            appendLine("Tên phiên bản: " + value("^\\s*versionName=([^\\r\\n]+)"))
+                            appendLine("Mã phiên bản: " + value("^\\s*versionCode=([^\\s]+)"))
+                            appendLine("Cài lần đầu: " + value("^\\s*firstInstallTime=([^\\r\\n]+)"))
+                            appendLine("Cập nhật gần nhất: " + value("^\\s*lastUpdateTime=([^\\r\\n]+)"))
+                            appendLine("Đường dẫn APK:")
+                            append(if (paths.isEmpty()) "Không đọc được đường dẫn." else paths.joinToString("\n"))
+                        }
+                    }
+                }
+                showPackageDetailsDialog(name, type, details)
+                status("Đã đọc chi tiết package $name. Không thay đổi ứng dụng trên TV.")
+            } catch (e: Exception) {
+                showPackageDetailsDialog(name, type, "Không đọc được chi tiết từ TV: " +
+                    (e.message ?: e.javaClass.simpleName) + "\nBạn vẫn có thể xem tên và phân loại package.")
+                status("Không đọc được chi tiết package $name.")
+            } finally { busy = false }
+        }
+    }
+
+    private fun showPackageDetailsDialog(name: String, type: String, technicalInfo: String) {
         val detail = "Tên package:\n$name\n\nPhân loại:\n$type\n\n" +
-            "Đánh giá an toàn: CHƯA XÁC MINH. Không thể kết luận package này an toàn để tắt chỉ dựa vào tên.\n\n" +
-            "Phiên bản hiện tại chỉ đọc danh sách package; không tắt, gỡ hoặc thay đổi ứng dụng trên TV."
+            "Thông tin kỹ thuật:\n$technicalInfo\n\n" +
+            "Đánh giá an toàn: CHƯA XÁC MINH. Không thể kết luận package an toàn để tắt chỉ dựa vào tên.\n" +
+            "YouClean hiện chỉ đọc dữ liệu; không tắt, gỡ hoặc thay đổi ứng dụng trên TV."
         android.app.AlertDialog.Builder(this)
             .setTitle("Chi tiết package")
             .setMessage(detail)
