@@ -58,6 +58,8 @@ class YouCleanAdbWifiActivity : Activity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            clipToPadding = false
             setPadding(dp(36), dp(22), dp(36), dp(22))
             setBackgroundColor(Color.rgb(13, 17, 24))
         }
@@ -67,6 +69,22 @@ class YouCleanAdbWifiActivity : Activity() {
         pairingPort = field("Cổng ghép đôi (Pairing port)", android.text.InputType.TYPE_CLASS_NUMBER)
         pairingCode = field("Mã ghép đôi 6 số", android.text.InputType.TYPE_CLASS_NUMBER)
         connectPort = field("Cổng kết nối ADB (Wireless debugging port)", android.text.InputType.TYPE_CLASS_NUMBER)
+        host.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+        pairingPort.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+        pairingCode.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+        connectPort.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+        host.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) { pairingPort.requestFocus(); true } else false
+        }
+        pairingPort.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) { pairingCode.requestFocus(); true } else false
+        }
+        pairingCode.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_NEXT) { connectPort.requestFocus(); true } else false
+        }
+        connectPort.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { pairingCode.clearFocus(); true } else false
+        }
         listOf("IP của TV" to host, "Cổng ghép đôi" to pairingPort, "Mã ghép đôi" to pairingCode,
             "Cổng kết nối" to connectPort).forEach { (caption, edit) ->
             root.addView(label(caption, 14f))
