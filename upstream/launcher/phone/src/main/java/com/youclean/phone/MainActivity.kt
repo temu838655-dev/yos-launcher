@@ -23,6 +23,7 @@ class MainActivity : Activity() {
     private lateinit var connectPort: EditText
     private lateinit var packageSearch: EditText
     private lateinit var status: TextView
+    private lateinit var deviceInfo: TextView
     private lateinit var packagesView: TextView
     private lateinit var keyProvider: FileKeyProvider
     private var packageRows: List<String> = emptyList()
@@ -93,6 +94,8 @@ class MainActivity : Activity() {
         root.addView(action("Quét tất cả ứng dụng (kể cả hệ thống)") { connectAndList(true) }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
         status = label("Chưa kết nối TV.", 14f, Color.rgb(255, 210, 140))
         root.addView(status.apply { setPadding(0, dp(12), 0, dp(8)) })
+        deviceInfo = label("Thông tin thiết bị: chưa đọc.", 13f, Color.rgb(180, 200, 220))
+        root.addView(deviceInfo.apply { setPadding(0, dp(4), 0, dp(8)) })
         root.addView(label("Danh sách ứng dụng", 18f).apply { setTypeface(null, 1); setPadding(0, dp(8), 0, dp(6)) })
         packageSearch = field("Tìm theo tên package…")
         packageSearch.addTextChangedListener(object : TextWatcher {
@@ -110,7 +113,7 @@ class MainActivity : Activity() {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
             packageSearch.text.clear(); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
-            packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
+            packagesView.text = "Chưa có dữ liệu."; deviceInfo.text = "Thông tin thiết bị: chưa đọc."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
     }
@@ -208,11 +211,19 @@ class MainActivity : Activity() {
                                 .filter { it.startsWith("package:") }
                                 .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.toSet()
                         } else emptySet()
-                        Pair(if (includeSystem) (users + systems).sorted() else users.sorted(), systems)
+                        fun property(name: String): String =
+                            client.shell("getprop $name").stdoutText.trim().ifBlank { "Không rõ" }
+                        val manufacturer = property("ro.product.manufacturer")
+                        val model = property("ro.product.model")
+                        val device = property("ro.product.device")
+                        val androidVersion = property("ro.build.version.release")
+                        val info = "Thiết bị: $manufacturer $model\\nMã thiết bị: $device\\nAndroid: $androidVersion"
+                        Triple(if (includeSystem) (users + systems).sorted() else users.sorted(), systems, info)
                     }
                 }
                 packageRows = result.first
                 systemPackages = result.second
+                deviceInfo.text = result.third
                 renderPackages()
                 val userCount = packageRows.count { it !in systemPackages }
                 val systemCount = packageRows.size - userCount
