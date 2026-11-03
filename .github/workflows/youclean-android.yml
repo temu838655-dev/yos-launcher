@@ -167,7 +167,6 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: YouClean-Android-TV
           name: YouClean-Android-Phone-and-TV
           path: |
             dist/YouClean-Phone.apk
