@@ -478,7 +478,7 @@ public final class YouCleanManagerActivity extends Activity {
         Collections.sort(sorted, String.CASE_INSENSITIVE_ORDER);
         StringBuilder content = new StringBuilder();
         for (String pkg : sorted) {
-            if (content.length() > 0) content.append('\\n');
+            if (content.length() > 0) content.append('\n');
             content.append(pkg);
         }
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
