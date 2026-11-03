@@ -1,6 +1,8 @@
 package com.youclean.phone
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
@@ -93,12 +95,24 @@ class MainActivity : Activity() {
         packagesView.setPadding(0, dp(10), 0, dp(4))
         packagesView.setTextIsSelectable(true)
         root.addView(packagesView)
+        root.addView(action("Sao chép danh sách đang hiển thị") { copyPackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             packageSearch.text.clear(); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
             packagesView.text = "Chưa có dữ liệu."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+    }
+
+    private fun copyPackageList() {
+        val content = packagesView.text?.toString().orEmpty()
+        if (content.isBlank() || content.startsWith("Chưa có dữ liệu")) {
+            Toast.makeText(this, "Chưa có danh sách để sao chép.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("YouClean package list", content))
+        Toast.makeText(this, "Đã sao chép danh sách package.", Toast.LENGTH_SHORT).show()
     }
 
     private fun renderPackages() {
