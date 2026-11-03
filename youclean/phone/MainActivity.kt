@@ -42,6 +42,7 @@ class MainActivity : Activity() {
     )
     private var showingAllPackages = false
     private var busy = false
+    private var hasFreshScan = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density + .5f).toInt()
     private fun label(value: String, size: Float = 14f, color: Int = Color.WHITE) =
@@ -136,10 +137,11 @@ class MainActivity : Activity() {
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
-            packageSearch.text.clear(); packageFilter.setSelection(0); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false
+            packageSearch.text.clear(); packageFilter.setSelection(0); packageRows = emptyList(); systemPackages = emptySet(); showingAllPackages = false; hasFreshScan = false
             packagesView.text = "Chưa có dữ liệu."; deviceInfo.text = "Thông tin thiết bị: chưa đọc."; status("Đã xóa các trường nhập.")
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
+        restoreSavedInventorySnapshot()
     }
 
     private fun copyDeviceInfo() {
@@ -447,6 +449,7 @@ class MainActivity : Activity() {
                 }
                 packageRows = result.first
                 systemPackages = result.second
+                hasFreshScan = true
                 deviceInfo.text = result.third
                 getSharedPreferences("youclean_inventory", MODE_PRIVATE).edit()
                     .putStringSet("packages", HashSet(packageRows))
@@ -464,6 +467,25 @@ class MainActivity : Activity() {
         }
     }
 
+
+    private fun restoreSavedInventorySnapshot() {
+        val prefs = getSharedPreferences("youclean_inventory", MODE_PRIVATE)
+        val saved = prefs.getStringSet("packages", emptySet())?.toList().orEmpty()
+        if (saved.isEmpty()) return
+        packageRows = saved.sorted()
+        systemPackages = prefs.getStringSet("systemPackages", emptySet())?.toSet().orEmpty()
+        val savedInfo = prefs.getString("deviceInfo", "Không rõ thiết bị") ?: "Không rõ thiết bị"
+        val savedAt = prefs.getLong("savedAt", 0L)
+        val time = if (savedAt > 0L) {
+            java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                .format(java.util.Date(savedAt))
+        } else "không rõ thời điểm"
+        deviceInfo.text = savedInfo + "\nLần quét đã lưu: " + time
+        hasFreshScan = false
+        renderPackages()
+        status("Đang hiển thị bản lưu gần nhất (" + packageRows.size +
+            " package, " + time + "). Đây không phải kết nối trực tiếp; hãy quét lại TV trước khi đối chiếu.")
+    }
 
     private fun createInventoryBackup() {
         val prefs = getSharedPreferences("youclean_inventory", MODE_PRIVATE)
@@ -518,8 +540,8 @@ class MainActivity : Activity() {
     }
 
     private fun openInventoryBackup() {
-        if (packageRows.isEmpty()) {
-            Toast.makeText(this, "Hãy kết nối TV và quét package trong phiên hiện tại trước khi đối chiếu.", Toast.LENGTH_LONG).show()
+        if (!hasFreshScan || packageRows.isEmpty()) {
+            Toast.makeText(this, "Đây mới là danh sách đã lưu. Hãy kết nối TV và quét mới trong phiên hiện tại trước khi đối chiếu.", Toast.LENGTH_LONG).show()
             return
         }
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -540,8 +562,8 @@ class MainActivity : Activity() {
     }
 
     private fun compareInventoryBackup(uri: android.net.Uri) {
-        if (packageRows.isEmpty()) {
-            status("Chưa có lần quét TV hiện tại. Hãy quét TV rồi thử lại.")
+        if (!hasFreshScan || packageRows.isEmpty()) {
+            status("Chưa có lần quét TV mới trong phiên hiện tại. Danh sách lưu cũ không được dùng làm dữ liệu hiện tại để đối chiếu.")
             return
         }
         try {
