@@ -571,6 +571,12 @@ public final class YouCleanManagerActivity extends Activity {
                 "com.google.android.modulemetadata",
                 "com.android.sdksandbox",
                 "com.android.location.fused",
+                "com.android.providers.settings",
+                "com.android.providers.tv",
+                "com.android.providers.media",
+                "com.android.providers.downloads",
+                "com.google.android.overlay.modules.ext.services",
+                "com.google.android.overlay.modules.permissioncontroller",
                 "com.google.android.tungsten.setupwraith",
                 "com.cltv.mal",
                 "com.mediatek.tis",
@@ -583,8 +589,6 @@ public final class YouCleanManagerActivity extends Activity {
             }
         }
         String[] protectedPrefixes = {
-                "com.android.providers.",
-                "com.google.android.overlay.modules",
                 "com.mediatek.tv.",
                 "com.mediatek.tis."
         };
