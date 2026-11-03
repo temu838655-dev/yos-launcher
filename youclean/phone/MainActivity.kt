@@ -101,6 +101,8 @@ class MainActivity : Activity() {
         root.addView(deviceInfo.apply { setPadding(0, dp(4), 0, dp(8)) })
         root.addView(action("Sao chép thông tin thiết bị") { copyDeviceInfo() },
             LinearLayout.LayoutParams(-1, dp(44)).apply { bottomMargin = dp(6) })
+        root.addView(action("Tra cứu hồ sơ mẫu TV") { lookupTvProfiles() },
+            LinearLayout.LayoutParams(-1, dp(44)).apply { bottomMargin = dp(6) })
         root.addView(label("Danh sách ứng dụng", 18f).apply { setTypeface(null, 1); setPadding(0, dp(8), 0, dp(6)) })
         packageSearch = field("Tìm theo tên package…")
         packageSearch.addTextChangedListener(object : TextWatcher {
@@ -142,6 +144,136 @@ class MainActivity : Activity() {
         }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(14) })
         setContentView(ScrollView(this).apply { isFillViewport = true; addView(root) })
         restoreSavedInventorySnapshot()
+    }
+
+    private fun lookupTvProfiles() {
+        val rawInfo = deviceInfo.text?.toString().orEmpty()
+        if (rawInfo.isBlank() || rawInfo.contains("chưa đọc", ignoreCase = true)) {
+            Toast.makeText(this, "Hãy kết nối và đọc thông tin TV trước.", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            val catalog = assets.open("youclean/model_catalog.json").bufferedReader().use {
+                org.json.JSONObject(it.readText())
+            }
+            val devices = catalog.optJSONArray("devices")
+                ?: throw IllegalStateException("Danh mục không có dữ liệu hồ sơ.")
+            val actual = linkedMapOf<String, String>()
+            rawInfo.lineSequence().forEach { line ->
+                val split = line.split(":", limit = 2)
+                if (split.size == 2) actual[split[0].trim()] = split[1].trim()
+            }
+            fun actualValue(key: String): String = actual[key].orEmpty()
+                .takeIf { it.isNotBlank() && !it.equals("Không rõ", true) } ?: ""
+            fun norm(value: String): String = value.lowercase(java.util.Locale.ROOT)
+                .replace(Regex("[^a-z0-9]+"), "")
+            val manufacturer = actualValue("Hãng")
+            val brand = actualValue("Brand").ifBlank { manufacturer }
+            val model = actualValue("Model")
+            val product = actualValue("Product")
+            val device = actualValue("Device")
+            val fingerprint = actualValue("Fingerprint")
+            val candidates = mutableListOf<Triple<Int, String, Boolean>>()
+            var exactFingerprintFound = false
+            for (i in 0 until devices.length()) {
+                val profile = devices.optJSONObject(i) ?: continue
+                val props = profile.optJSONObject("properties") ?: org.json.JSONObject()
+                val profileFingerprint = props.optString("ro.build.fingerprint",
+                    profile.optString("fingerprint", "")).trim()
+                val profileBrand = profile.optString("brand", "").trim()
+                val profileManufacturer = props.optString("ro.product.manufacturer", "").trim()
+                val profileModel = props.optString("ro.product.model", "").trim()
+                val profileProduct = props.optString("ro.product.name", "").trim()
+                val profileDevice = props.optString("ro.product.device", "").trim()
+                val fingerprintMatch = fingerprint.isNotBlank() &&
+                    profileFingerprint.isNotBlank() &&
+                    fingerprint.equals(profileFingerprint, ignoreCase = true)
+                val brandMatch = brand.isNotBlank() &&
+                    (norm(brand) == norm(profileBrand) ||
+                     (manufacturer.isNotBlank() && norm(manufacturer) == norm(profileManufacturer)))
+                val strictHardwareMatch = model.isNotBlank() && product.isNotBlank() &&
+                    device.isNotBlank() && norm(model) == norm(profileModel) &&
+                    norm(product) == norm(profileProduct) && norm(device) == norm(profileDevice) &&
+                    brandMatch
+                if (fingerprintMatch) exactFingerprintFound = true
+                val score = when {
+                    fingerprintMatch -> 100
+                    strictHardwareMatch -> 80
+                    model.isNotBlank() && norm(model) == norm(profileModel) && brandMatch -> 65
+                    brandMatch -> 40
+                    else -> 0
+                }
+                if (score > 0) {
+                    val title = profile.optString("tv", profile.optString("id", "Hồ sơ TV"))
+                    val os = profile.optString("os", "Không rõ")
+                    val notes = profile.optString("notes", "").take(260)
+                    val count = profile.optInt("debloatPackageCount", 0)
+                    val source = profile.optString("source", "")
+                    val level = when {
+                        fingerprintMatch -> "KHỚP FINGERPRINT"
+                        strictHardwareMatch -> "KHỚP MODEL + PRODUCT + DEVICE (chưa xác minh firmware)"
+                        score == 65 -> "TRÙNG MODEL VÀ HÃNG (tham khảo)"
+                        else -> "CÙNG HÃNG (tham khảo)"
+                    }
+                    val details = buildString {
+                        appendLine("[$level]")
+                        appendLine(title)
+                        appendLine("Hệ điều hành tham chiếu: $os")
+                        appendLine("Số package trong ví dụ nguồn: $count")
+                        if (notes.isNotBlank()) appendLine("Ghi chú: $notes")
+                        if (source.isNotBlank()) appendLine("Nguồn: $source")
+                    }
+                    candidates += Triple(score, details, fingerprintMatch)
+                }
+            }
+            val sorted = candidates.sortedWith(
+                compareByDescending<Triple<Int, String, Boolean>> { it.first }
+                    .thenBy { it.second }
+            ).take(8)
+            val result = buildString {
+                appendLine("KẾT QUẢ TRA CỨU HỒ SƠ TV")
+                appendLine("Danh mục: \${devices.length()} hồ sơ tham chiếu từ CleanYourTV.")
+                appendLine("Thiết bị hiện tại: \${brand.ifBlank { "Không rõ hãng" }} \${model.ifBlank { "" }}")
+                appendLine("Product: \${product.ifBlank { "Không rõ" }} · Device: \${device.ifBlank { "Không rõ" }}")
+                appendLine()
+                if (sorted.isEmpty()) {
+                    appendLine("Chưa tìm thấy hồ sơ cùng hãng/model trong danh mục.")
+                } else {
+                    appendLine("Có \${candidates.size} hồ sơ liên quan; hiển thị tối đa 8:")
+                    appendLine()
+                    sorted.forEachIndexed { index, item ->
+                        appendLine("\${index + 1}. \${item.second}")
+                    }
+                }
+                appendLine()
+                appendLine("ĐỘ TIN CẬY:")
+                appendLine(if (exactFingerprintFound)
+                    "Có fingerprint trùng hoàn toàn với một hồ sơ tham chiếu."
+                else "Chưa có fingerprint trùng hoàn toàn.")
+                appendLine("Trùng hãng/model hoặc thông số phần cứng không chứng minh firmware giống nhau.")
+                appendLine("Danh sách package nguồn không phải danh sách an toàn để tắt. Không có thao tác thay đổi nào được thực hiện.")
+            }
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Hồ sơ tham chiếu TV")
+                .setMessage(result)
+                .setPositiveButton("Đóng", null)
+                .setNeutralButton("Sao chép") { _, _ ->
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("YouClean TV profile lookup", result))
+                    Toast.makeText(this, "Đã sao chép kết quả tra cứu.", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+            status("Đã tra cứu \${candidates.size} hồ sơ tham chiếu. Chỉ đối chiếu, không thay đổi TV.")
+        } catch (e: Exception) {
+            val message = "Không thể đọc danh mục hồ sơ TV: " +
+                (e.message ?: e.javaClass.simpleName) +
+                "\nHãy cập nhật ứng dụng hoặc kiểm tra tệp dữ liệu đi kèm."
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Không đọc được hồ sơ")
+                .setMessage(message)
+                .setPositiveButton("Đóng", null)
+                .show()
+        }
     }
 
     private fun copyDeviceInfo() {
