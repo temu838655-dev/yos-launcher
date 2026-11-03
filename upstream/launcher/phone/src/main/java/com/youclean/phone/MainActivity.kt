@@ -130,7 +130,7 @@ class MainActivity : Activity() {
                     AdbClient.connectTls(host, p, keyProvider).use { it.shell("pm list packages -3").stdoutText }
                 }
                 packageRows = output.lineSequence().filter { it.startsWith("package:") }
-                    .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+                    .map { it.removePrefix("package:").trim() }.filter { it.isNotEmpty() }.distinct().sorted().toList()
                 renderPackages()
                 status("Đã kết nối. Tìm thấy ${packageRows.size} ứng dụng người dùng. Chế độ hiện tại chỉ đọc dữ liệu.")
             } catch (e: Exception) { status("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) + ". Kiểm tra lại IP, cổng và trạng thái ghép đôi.") }
