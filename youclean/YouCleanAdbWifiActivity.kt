@@ -55,6 +55,9 @@ class YouCleanAdbWifiActivity : Activity() {
 
     private fun setBusy(busy: Boolean) {
         operationInProgress = busy
+        // A cancelled coroutine may still enter finally{} while the Activity
+        // is being destroyed. Never touch Views after onDestroy().
+        if (activityDestroyed) return
         if (::pairButton.isInitialized) pairButton.isEnabled = !busy
         if (::connectButton.isInitialized) connectButton.isEnabled = !busy
     }
