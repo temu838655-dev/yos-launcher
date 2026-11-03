@@ -91,6 +91,7 @@ class MainActivity : Activity() {
         root.addView(packageSearch, LinearLayout.LayoutParams(-1, dp(48)))
         packagesView = label("Chưa có dữ liệu. Bản thử nghiệm chỉ đọc package. Chưa package nào được xác nhận an toàn để tắt; không tự ý vô hiệu hóa ứng dụng.", 13f, Color.rgb(205, 214, 226))
         packagesView.setPadding(0, dp(10), 0, dp(4))
+        packagesView.setTextIsSelectable(true)
         root.addView(packagesView)
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
@@ -114,6 +115,7 @@ class MainActivity : Activity() {
                 "Tổng: ${packageRows.size} | Người dùng: $userCount | Hệ thống: $systemCount\\n" +
                     "Cốt lõi cần giữ: $protectedCount | Chưa đánh giá: $unreviewedCount\\n" +
                     "Phân loại chỉ mang tính nhận diện, KHÔNG có nghĩa package chưa đánh giá là an toàn để tắt.\\n" +
+                    "Nhấn giữ để chọn và sao chép mã package.\\n" +
                     filtered.mapIndexed { index, name ->
                         val type = when {
                             name in protectedPackages -> "[CỐT LÕI - GIỮ LẠI]"
