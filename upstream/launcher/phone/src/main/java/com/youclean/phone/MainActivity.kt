@@ -216,7 +216,7 @@ class MainActivity : Activity() {
                 renderPackages()
                 val userCount = packageRows.count { it !in systemPackages }
                 val systemCount = packageRows.size - userCount
-                status("Đã kết nối. $userCount ứng dụng người dùng, $systemCount package hệ thống. Chỉ đọc dữ liệu, chưa thay đổi ứng dụng trên TV.")
+                status("Đã đọc dữ liệu TV qua ADB. $userCount ứng dụng người dùng, $systemCount package hệ thống. Phiên ADB đã đóng sau khi quét; chưa thay đổi ứng dụng trên TV.")
             } catch (e: Exception) { status("Kết nối thất bại: " + (e.message ?: e.javaClass.simpleName) + ". Kiểm tra lại IP, cổng và trạng thái ghép đôi.") }
             finally { busy = false }
         }
