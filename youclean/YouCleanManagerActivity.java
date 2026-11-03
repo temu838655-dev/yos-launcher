@@ -977,23 +977,39 @@ public final class YouCleanManagerActivity extends Activity {
             for (ApplicationInfo app : applications) {
                 if (app.packageName != null) installed.add(app.packageName);
             }
+            java.util.LinkedHashSet<String> uniqueSaved = new java.util.LinkedHashSet<>();
             java.util.LinkedHashSet<String> missing = new java.util.LinkedHashSet<>();
+            int invalidEntries = 0;
             for (int i = 0; i < saved.length(); i++) {
                 JSONObject item = saved.optJSONObject(i);
-                if (item == null) continue;
+                if (item == null) {
+                    invalidEntries++;
+                    continue;
+                }
                 String pkg = item.optString("packageName", "").trim();
-                if (!pkg.isEmpty() && !installed.contains(pkg)) missing.add(pkg);
+                if (pkg.isEmpty()) {
+                    invalidEntries++;
+                    continue;
+                }
+                if (!uniqueSaved.add(pkg)) continue;
+                if (!installed.contains(pkg)) missing.add(pkg);
             }
+            int installedCount = uniqueSaved.size() - missing.size();
 
             if (missing.isEmpty()) {
-                summary.setText("Đã kiểm tra " + saved.length()
-                        + " mục trong bản sao lưu: không phát hiện package nào bị thiếu. "
+                summary.setText("Đã đối chiếu " + uniqueSaved.size()
+                        + " package hợp lệ: không phát hiện package nào bị thiếu. "
+                        + (invalidEntries > 0 ? "Bỏ qua " + invalidEntries + " mục không hợp lệ. " : "")
                         + "Không có ứng dụng nào được cài đặt hoặc thay đổi.");
             } else {
                 StringBuilder report = new StringBuilder();
-                report.append("Bản sao lưu: ").append(saved.length())
-                        .append(" mục · Đã cài: ").append(saved.length() - missing.size())
-                        .append(" · Còn thiếu: ").append(missing.size()).append("\n");
+                report.append("Bản sao lưu: ").append(uniqueSaved.size())
+                        .append(" package hợp lệ · Đã cài: ").append(installedCount)
+                        .append(" · Còn thiếu: ").append(missing.size());
+                if (invalidEntries > 0) {
+                    report.append(" · Mục lỗi: ").append(invalidEntries);
+                }
+                report.append("\\n");
                 int count = 0;
                 for (String pkg : missing) {
                     if (count++ == 30) {
