@@ -127,6 +127,8 @@ class MainActivity : Activity() {
         })
         root.addView(action("Sao chép danh sách đang hiển thị") { copyPackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         root.addView(action("Chia sẻ danh sách package") { sharePackageList() }, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
+        root.addView(action("Xuất báo cáo thiết bị và package") { shareDiagnosticReport() },
+            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
         root.addView(action("Xóa thông tin nhập") {
             ip.text.clear(); pairPort.text.clear(); pairCode.text.clear(); connectPort.text.clear()
             getSharedPreferences("youclean_connection", MODE_PRIVATE).edit().clear().apply()
@@ -170,6 +172,41 @@ class MainActivity : Activity() {
             putExtra(Intent.EXTRA_TEXT, content)
         }
         startActivity(Intent.createChooser(sendIntent, "Chia sẻ danh sách package"))
+    }
+
+    private fun shareDiagnosticReport() {
+        if (packageRows.isEmpty()) {
+            Toast.makeText(this, "Hãy kết nối TV và quét package trước.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val report = buildString {
+            appendLine("BÁO CÁO CHẨN ĐOÁN YOUCLEAN")
+            appendLine("Thời điểm xuất: " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date()))
+            appendLine()
+            appendLine(deviceInfo.text?.toString().orEmpty())
+            appendLine()
+            appendLine("Tổng package đã đọc: " + packageRows.size)
+            appendLine("Package hệ thống: " + systemPackages.size)
+            appendLine("Ứng dụng người dùng: " + (packageRows.size - systemPackages.size))
+            appendLine()
+            appendLine("DANH SÁCH PACKAGE")
+            packageRows.sorted().forEach { name ->
+                val category = when {
+                    name in protectedPackages -> "ĐÃ NHẬN DIỆN CẦN GIỮ"
+                    name in systemPackages -> "HỆ THỐNG - CHƯA ĐÁNH GIÁ"
+                    else -> "CÀI THÊM - CHƯA ĐÁNH GIÁ"
+                }
+                appendLine("$name [$category]")
+            }
+            appendLine()
+            appendLine("LƯU Ý: Báo cáo chỉ chứa thông tin đọc qua ADB. Package chưa đánh giá không được xác nhận an toàn để tắt. Không có thao tác thay đổi nào được thực hiện trên TV.")
+        }
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Báo cáo chẩn đoán YouClean")
+            putExtra(Intent.EXTRA_TEXT, report)
+        }
+        startActivity(Intent.createChooser(sendIntent, "Xuất báo cáo YouClean"))
     }
 
     private fun restoreConnectionFields() {
