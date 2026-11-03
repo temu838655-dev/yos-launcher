@@ -928,8 +928,10 @@ public final class YouCleanManagerActivity extends Activity {
                 items.put(item);
             }
             root.put("applications", items);
-            try (OutputStream out = getContentResolver().openOutputStream(uri);
-                 OutputStreamWriter writer = new OutputStreamWriter(out, "UTF-8")) {
+            OutputStream out = getContentResolver().openOutputStream(uri);
+            if (out == null) throw new IllegalStateException("Không mở được tệp sao lưu đã chọn.");
+            try (OutputStream stream = out;
+                 OutputStreamWriter writer = new OutputStreamWriter(stream, "UTF-8")) {
                 writer.write(root.toString(2));
                 writer.flush();
             }
@@ -956,7 +958,12 @@ public final class YouCleanManagerActivity extends Activity {
             StringBuilder content = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
                 String line;
-                while ((line = reader.readLine()) != null) content.append(line);
+                while ((line = reader.readLine()) != null) {
+                    content.append(line);
+                    if (content.length() > 5 * 1024 * 1024) {
+                        throw new IllegalArgumentException("Tệp sao lưu quá lớn (giới hạn 5 MB).");
+                    }
+                }
             }
             JSONObject backup = new JSONObject(content.toString());
             if (!"youclean-app-list".equals(backup.optString("format"))
