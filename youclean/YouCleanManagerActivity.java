@@ -76,7 +76,7 @@ public final class YouCleanManagerActivity extends Activity {
         title.setTypeface(null, 1);
         root.addView(title);
 
-        TextView note = text("Xem ứng dụng trên TV. Chọn một ứng dụng để mở trang thông tin hệ thống. "
+        TextView note = text("Xem ứng dụng, loại ứng dụng và trạng thái bật/tắt. Chọn một ứng dụng để mở trang thông tin hệ thống. "
                 + "Bản này chưa tự vô hiệu hóa hoặc gỡ bất kỳ gói nào.", 14,
                 Color.rgb(190, 202, 218));
         LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, -2);
@@ -243,6 +243,34 @@ public final class YouCleanManagerActivity extends Activity {
         LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(-1, -2);
         detailLp.topMargin = dp(3);
         row.addView(details, detailLp);
+
+        String enabledLabel;
+        try {
+            int state = getPackageManager().getApplicationEnabledSetting(pkg);
+            switch (state) {
+                case PackageManager.COMPONENT_ENABLED_STATE_DISABLED:
+                    enabledLabel = "Đã tắt";
+                    break;
+                case PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER:
+                    enabledLabel = "Đã tắt bởi người dùng";
+                    break;
+                case PackageManager.COMPONENT_ENABLED_STATE_DISABLED_UNTIL_USED:
+                    enabledLabel = "Tạm tắt đến khi được mở";
+                    break;
+                case PackageManager.COMPONENT_ENABLED_STATE_ENABLED:
+                    enabledLabel = "Đang bật";
+                    break;
+                default:
+                    enabledLabel = app.enabled ? "Đang bật (mặc định)" : "Đang tắt (mặc định)";
+                    break;
+            }
+        } catch (Exception e) {
+            enabledLabel = app.enabled ? "Trạng thái: đang bật" : "Trạng thái: đang tắt";
+        }
+        TextView stateView = text(enabledLabel, 12, Color.rgb(135, 190, 160));
+        LinearLayout.LayoutParams stateLp = new LinearLayout.LayoutParams(-1, -2);
+        stateLp.topMargin = dp(2);
+        row.addView(stateView, stateLp);
         row.setOnClickListener(v -> openAppInfo(pkg));
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
