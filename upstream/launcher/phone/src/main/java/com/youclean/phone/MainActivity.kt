@@ -75,6 +75,15 @@ class MainActivity : Activity() {
         pairCode = field("Mã ghép đôi 6 chữ số", true)
         connectPort = field("Cổng Wireless debugging (Connect port)", true)
         restoreConnectionFields()
+        listOf(ip, pairPort, connectPort).forEach { input ->
+            input.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    saveConnectionFields()
+                }
+                override fun afterTextChanged(s: Editable?) {}
+            })
+        }
         listOf("2. Nhập thông tin TV" to ip, "Cổng ghép đôi" to pairPort, "Mã 6 số trên TV" to pairCode, "Cổng kết nối hiển thị trên TV" to connectPort).forEach { (caption, edit) ->
             root.addView(label(caption, 13f, Color.LTGRAY).apply { setPadding(0, dp(10), 0, dp(4)) })
             root.addView(edit, LinearLayout.LayoutParams(-1, dp(52)))
