@@ -22,7 +22,7 @@ The manager and ADB tools are opened from the launcher's Settings screen; they a
 
 ## Build and downloads
 
-Open **Actions → YouClean Android TV → Run workflow** to start a build manually. Pushes to `main` and `feature/adb-wifi-prototype` start builds. Each successful build uploads the APK, source archive and checksums as an Actions artifact and attaches them to a GitHub Release.
+Open **Actions → YouClean Android TV → Run workflow** to start a build manually. Pushes to `feature/adb-wifi-prototype` start builds. The stable `main` branch is left untouched until the experimental branch is reviewed and merged. Each successful build uploads the APK, source archive and checksums as an Actions artifact and attaches them to a GitHub Release.
 
 - Stable branch: `main`
 - Experimental branch: `feature/adb-wifi-prototype`
@@ -31,7 +31,7 @@ Do not merge the experimental branch into `main` until the APK has been installe
 
 ## Upstream project and license
 
-The launcher, tools, device lists and safety logic originate from [Gathin23/CleanYourTV](https://github.com/Gathin23/cleanyourtv). The workflow fetches the upstream repository at build time and packages a source archive without its Git metadata. See the upstream [MIT license](https://github.com/Gathin23/cleanyourtv/blob/main/LICENSE), the separate [Outfit font license](https://github.com/Gathin23/cleanyourtv/blob/main/launcher/FONT-LICENSE-OFL.txt), and `UPSTREAM.md`.
+The launcher, tools, device lists and safety logic originate from [Gathin23/CleanYourTV](https://github.com/Gathin23/cleanyourtv). The complete upstream repository is vendored in `upstream/`, with the exact revision recorded in `UPSTREAM_COMMIT`. The build compiles this checked-in snapshot and packages the patched source archive without Git metadata. See the upstream [MIT license](https://github.com/Gathin23/cleanyourtv/blob/main/LICENSE), the separate [Outfit font license](https://github.com/Gathin23/cleanyourtv/blob/main/launcher/FONT-LICENSE-OFL.txt), and `UPSTREAM.md`.
 
 YouClean is an independent downstream build and is not affiliated with or endorsed by Gathin23 or any TV manufacturer.
 
