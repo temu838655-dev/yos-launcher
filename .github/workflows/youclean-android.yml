@@ -42,13 +42,9 @@ jobs:
                   <activity
                       android:name=".YouCleanManagerActivity"
                       android:label="YouClean Apps"
-                      android:exported="true"
-                      android:screenOrientation="landscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                      </intent-filter>
-                  </activity>
+                      android:exported="false"
+                      android:excludeFromRecents="true"
+                      android:screenOrientation="landscape" />
           '''
           if ".YouCleanManagerActivity" not in s:
               s = s.replace('        <activity\n            android:name=".MainActivity"', activity + '\n        <activity\n            android:name=".MainActivity"', 1)
@@ -56,13 +52,9 @@ jobs:
                   <activity
                       android:name=".YouCleanAdbGuideActivity"
                       android:label="YouClean ADB Wi-Fi"
-                      android:exported="true"
-                      android:screenOrientation="landscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                      </intent-filter>
-                  </activity>
+                      android:exported="false"
+                      android:excludeFromRecents="true"
+                      android:screenOrientation="landscape" />
           """
           if ".YouCleanAdbGuideActivity" not in s:
               s = s.replace('        <activity\n            android:name=".MainActivity"', adb_activity + '\n        <activity\n            android:name=".MainActivity"', 1)
@@ -73,13 +65,9 @@ jobs:
                   <activity
                       android:name=".YouCleanAdbWifiActivity"
                       android:label="YouClean ADB Wi-Fi (thử nghiệm)"
-                      android:exported="true"
-                      android:screenOrientation="landscape">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-                      </intent-filter>
-                  </activity>
+                      android:exported="false"
+                      android:excludeFromRecents="true"
+                      android:screenOrientation="landscape" />
           """
           if ".YouCleanAdbWifiActivity" not in s:
               s = s.replace('        <activity\n            android:name=".MainActivity"', adb_wifi_activity + '\n        <activity\n            android:name=".MainActivity"', 1)
@@ -89,6 +77,55 @@ jobs:
           assert "YouCleanAdbWifiActivity" in s
           assert "android.permission.INTERNET" in s
           assert "QUERY_ALL_PACKAGES" in s
+
+          # Put YouClean tools inside the launcher's own Settings screen, not in the TV app grid.
+          settings_java = Path("upstream/launcher/app/src/main/java/com/gathin/tvhome/LauncherSettingsActivity.java")
+          java = settings_java.read_text()
+          settings_marker = '''        findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
+                open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
+          '''
+          tools_block = '''        findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
+                open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
+
+        android.widget.LinearLayout settingsRoot = (android.widget.LinearLayout)
+                ((android.widget.ScrollView) ((android.view.ViewGroup)
+                findViewById(android.R.id.content)).getChildAt(0)).getChildAt(0);
+        android.widget.TextView managerEntry = new android.widget.TextView(this);
+        managerEntry.setText("YouClean · Quản lý ứng dụng và sao lưu");
+        managerEntry.setTextColor(android.graphics.Color.WHITE);
+        managerEntry.setTextSize(18);
+        managerEntry.setFocusable(true);
+        managerEntry.setClickable(true);
+        managerEntry.setPadding(24, 22, 24, 22);
+        managerEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
+        android.widget.LinearLayout.LayoutParams toolLp = new android.widget.LinearLayout.LayoutParams(-1, -2);
+        toolLp.topMargin = 20;
+        settingsRoot.addView(managerEntry, toolLp);
+        managerEntry.setOnClickListener(v -> open(new Intent(this, YouCleanManagerActivity.class)));
+
+        android.widget.TextView adbEntry = new android.widget.TextView(this);
+        adbEntry.setText("YouClean · Hướng dẫn và kết nối ADB Wi-Fi (thử nghiệm)");
+        adbEntry.setTextColor(android.graphics.Color.WHITE);
+        adbEntry.setTextSize(18);
+        adbEntry.setFocusable(true);
+        adbEntry.setClickable(true);
+        adbEntry.setPadding(24, 22, 24, 22);
+        adbEntry.setBackgroundColor(android.graphics.Color.rgb(35, 45, 58));
+        android.widget.LinearLayout.LayoutParams adbLp = new android.widget.LinearLayout.LayoutParams(-1, -2);
+        adbLp.topMargin = 10;
+        settingsRoot.addView(adbEntry, adbLp);
+        adbEntry.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("YouClean · ADB Wi-Fi")
+                .setMessage("Bạn muốn xem hướng dẫn ghép đôi hay mở công cụ kết nối thử nghiệm?\\n\\nCông cụ hiện chỉ đọc danh sách ứng dụng, không tắt hoặc gỡ package.")
+                .setPositiveButton("Hướng dẫn", (dialog, which) -> open(new Intent(this, YouCleanAdbGuideActivity.class)))
+                .setNeutralButton("Kết nối thử nghiệm", (dialog, which) -> open(new Intent(this, YouCleanAdbWifiActivity.class)))
+                .setNegativeButton(android.R.string.cancel, null).show());
+          '''
+          if "YouClean · Quản lý ứng dụng và sao lưu" not in java:
+              if settings_marker not in java:
+                  raise SystemExit("Launcher settings insertion marker not found")
+              java = java.replace(settings_marker, tools_block, 1)
+              settings_java.write_text(java)
           PY
 
       - name: Enable Kotlin and ADB library for prototype
