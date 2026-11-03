@@ -2,7 +2,7 @@ name: YouClean Android TV
 
 on:
   push:
-    branches: [main, feature/adb-wifi-prototype]
+    branches: [feature/adb-wifi-prototype]
     paths-ignore:
       - '.github/workflows/vendor-cleanyourtv.yml'
   workflow_dispatch:
