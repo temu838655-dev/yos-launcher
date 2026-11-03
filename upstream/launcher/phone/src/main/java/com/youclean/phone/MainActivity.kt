@@ -181,6 +181,7 @@ class MainActivity : Activity() {
         }
         val report = buildString {
             appendLine("BÁO CÁO CHẨN ĐOÁN YOUCLEAN")
+            appendLine("Phiên bản ứng dụng: " + (packageManager.getPackageInfo(packageName, 0).versionName ?: "Không rõ"))
             appendLine("Thời điểm xuất: " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date()))
             appendLine()
             appendLine(deviceInfo.text?.toString().orEmpty())
@@ -203,6 +204,7 @@ class MainActivity : Activity() {
             }
             appendLine()
             appendLine("GIỚI HẠN: Danh sách bảo vệ hiện tại chỉ là tập nhận diện cơ bản, không bao phủ mọi hãng và firmware. Nhãn 'chưa được đánh giá' không có nghĩa là không quan trọng.")
+            appendLine("QUYỀN RIÊNG TƯ: Báo cáo có thể chứa địa chỉ IP TV và tên package. Hãy kiểm tra nội dung trước khi gửi. Mã ghép đôi và khóa ADB riêng không được đưa vào báo cáo.")
             appendLine("LƯU Ý: Báo cáo chỉ chứa thông tin đọc qua ADB. Package chưa đánh giá không được xác nhận an toàn để tắt. Không có thao tác thay đổi nào được thực hiện trên TV.")
         }
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
