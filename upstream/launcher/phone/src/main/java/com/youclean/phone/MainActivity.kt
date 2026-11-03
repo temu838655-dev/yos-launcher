@@ -336,10 +336,11 @@ class MainActivity : Activity() {
                             appendLine("Đường dẫn cài đặt: " + value("^\\s*codePath=([^\\r\\n]+)"))
                             appendLine("Thư mục dữ liệu: " + value("^\\s*dataDir=([^\\r\\n]+)"))
                             appendLine("Cờ package: " + value("^\\s*pkgFlags=\\[([^\\]]*)\\]"))
+                            appendLine("Nguồn cài đặt: " + value("^\\s*installerPackageName=([^\\r\\n]+)"))
                             appendLine("Cài lần đầu: " + value("^\\s*firstInstallTime=([^\\r\\n]+)"))
                             appendLine("Cập nhật gần nhất: " + value("^\\s*lastUpdateTime=([^\\r\\n]+)"))
                             appendLine("Đường dẫn APK:")
-                            append(if (paths.isEmpty()) "Không đọc được đường dẫn." else paths.joinToString("\n"))
+                            append(if (paths.isEmpty()) "Không đọc được đường dẫn. Phản hồi TV: " + pathOutput.trim().take(500).ifBlank { "trống" } else paths.joinToString("\n"))
                         }
                     }
                 }
