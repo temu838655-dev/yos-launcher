@@ -244,15 +244,20 @@ public final class YouCleanManagerActivity extends Activity {
             JSONArray devices = catalog.optJSONArray("devices");
             if (devices == null) throw new IllegalStateException("Danh mục model không hợp lệ.");
 
+            String currentFingerprint = normalizeFingerprint(Build.FINGERPRINT);
+            String currentBuild = safeBuildValue(Build.DISPLAY);
+            String currentIncremental = safeBuildValue(Build.VERSION.INCREMENTAL);
             String[] deviceValues = {
-                    Build.MANUFACTURER, Build.MODEL, Build.DEVICE, Build.PRODUCT, Build.BOARD
+                    Build.MANUFACTURER, Build.MODEL, Build.DEVICE,
+                    Build.PRODUCT, Build.BOARD
             };
             java.util.LinkedHashSet<String> terms = new java.util.LinkedHashSet<>();
             for (String value : deviceValues) {
                 if (value == null) continue;
-                String normalized = value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim();
+                String normalized = value.toLowerCase(Locale.ROOT)
+                        .replaceAll("[^a-z0-9]+", " ").trim();
                 for (String part : normalized.split("\\s+")) {
-                    if (part.length() >= 3) terms.add(part);
+                    if (part.length() >= 4 && !isGenericModelTerm(part)) terms.add(part);
                 }
             }
 
@@ -261,11 +266,14 @@ public final class YouCleanManagerActivity extends Activity {
             for (int i = 0; i < devices.length(); i++) {
                 JSONObject item = devices.optJSONObject(i);
                 if (item == null) continue;
+                String itemFingerprint = normalizeFingerprint(item.optString("fingerprint", ""));
+                boolean exactFingerprint = !currentFingerprint.isEmpty()
+                        && currentFingerprint.equals(itemFingerprint);
                 String haystack = (item.optString("brand") + " " + item.optString("tv")
                         + " " + item.optString("id")).toLowerCase(Locale.ROOT);
-                int score = 0;
+                int score = exactFingerprint ? 100000 : 0;
                 for (String term : terms) {
-                    if (haystack.contains(term)) score += term.length() >= 5 ? 3 : 1;
+                    if (haystack.contains(term)) score += term.length() >= 6 ? 10 : 4;
                 }
                 if (score > 0) {
                     int position = 0;
@@ -279,29 +287,44 @@ public final class YouCleanManagerActivity extends Activity {
             report.append("Danh mục tham khảo: ").append(devices.length())
                     .append(" hồ sơ TV. Thiết bị hiện tại: ")
                     .append(Build.MANUFACTURER).append(" / ").append(Build.MODEL)
-                    .append(" / ").append(Build.DEVICE).append("\n\n");
+                    .append(" / ").append(Build.DEVICE)
+                    .append("\\nBuild hiện tại: ").append(currentBuild)
+                    .append(" · Incremental: ").append(currentIncremental)
+                    .append("\\nFingerprint hiện tại: ")
+                    .append(currentFingerprint.isEmpty() ? "không cung cấp" : currentFingerprint)
+                    .append("\\n\\n");
             if (matches.isEmpty()) {
-                report.append("Chưa tìm thấy hồ sơ có từ khóa trùng. Bạn cần đối chiếu thủ công bằng model, board và firmware.");
+                report.append("Chưa tìm thấy hồ sơ có từ khóa model/hãng trùng. "
+                        + "Danh mục upstream có thể không chứa đúng thiết bị này.");
             } else {
                 int limit = Math.min(matches.size(), 8);
-                report.append("Các hồ sơ có từ khóa gần giống (không phải xác nhận tương thích):\n\n");
+                report.append("Hồ sơ được xếp theo mức độ trùng. Chỉ fingerprint trùng hoàn toàn "
+                        + "mới được đánh dấu trùng fingerprint; các kết quả khác chỉ là gợi ý model/hãng.\\n\\n");
                 for (int i = 0; i < limit; i++) {
                     JSONObject item = matches.get(i);
-                    report.append(i + 1).append(". ").append(item.optString("tv"))
-                            .append("\n   Hệ điều hành: ").append(item.optString("os", "không rõ"))
+                    String itemFingerprint = normalizeFingerprint(item.optString("fingerprint", ""));
+                    boolean exactFingerprint = !currentFingerprint.isEmpty()
+                            && currentFingerprint.equals(itemFingerprint);
+                    report.append(i + 1).append(". ")
+                            .append(exactFingerprint ? "[FINGERPRINT TRÙNG]" : "[GỢI Ý MODEL/HÃNG]")
+                            .append(" ").append(item.optString("tv"))
+                            .append("\\n   Hệ điều hành: ").append(item.optString("os", "không rõ"))
                             .append(" · ").append(item.optInt("debloatPackageCount"))
                             .append(" package trong danh sách mẫu")
-                            .append("\n   Build ghi nhận: ").append(item.optString("build", "không có"))
-                            .append("\n   Fingerprint: ").append(item.optString("fingerprint", "không có"));
+                            .append("\\n   Build mẫu: ").append(item.optString("build", "không có"))
+                            .append("\\n   Fingerprint mẫu: ")
+                            .append(itemFingerprint.isEmpty() ? "không có" : itemFingerprint);
                     String notes = item.optString("notes", "");
                     if (!notes.isEmpty()) {
                         if (notes.length() > 420) notes = notes.substring(0, 420) + "…";
-                        report.append("\n   Ghi chú: ").append(notes);
+                        report.append("\\n   Ghi chú: ").append(notes);
                     }
-                    report.append("\n   Nguồn: ").append(item.optString("source")).append("\n\n");
+                    report.append("\\n   Nguồn: ").append(item.optString("source")).append("\\n\\n");
                 }
             }
-            report.append("LƯU Ý AN TOÀN: kết quả chỉ dựa trên từ khóa hãng/model. Chỉ trùng tên không chứng minh cùng firmware. YouClean chưa áp dụng danh sách và không tắt package nào.");
+            report.append("LƯU Ý AN TOÀN: fingerprint trùng là tín hiệu nhận dạng mạnh nhưng vẫn cần "
+                    + "kiểm tra phiên bản firmware và phần cứng. Gợi ý theo model/hãng không chứng minh "
+                    + "tương thích. YouClean chỉ đọc danh mục; không áp dụng danh sách và không tắt package nào.");
             TextView body = text(report.toString(), 13, Color.WHITE);
             body.setPadding(dp(18), dp(12), dp(18), dp(12));
             ScrollView scroll = new ScrollView(this);
@@ -318,6 +341,17 @@ public final class YouCleanManagerActivity extends Activity {
                     .setPositiveButton("Đóng", null)
                     .show();
         }
+    }
+
+    private String normalizeFingerprint(String value) {
+        if (value == null) return "";
+        return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isGenericModelTerm(String term) {
+        return "android".equals(term) || "google".equals(term) || "smart".equals(term)
+                || "device".equals(term) || "board".equals(term) || "build".equals(term)
+                || "generic".equals(term) || "unknown".equals(term) || "model".equals(term);
     }
 
     private void loadApps() {
