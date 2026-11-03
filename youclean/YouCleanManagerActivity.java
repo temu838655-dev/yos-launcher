@@ -89,6 +89,10 @@ public final class YouCleanManagerActivity extends Activity {
         search.setHintTextColor(Color.GRAY);
         search.setHint("Tìm theo tên hoặc package...");
         search.setTextSize(16);
+        search.setPadding(dp(12), dp(6), dp(12), dp(6));
+        search.setBackgroundColor(Color.rgb(40, 49, 62));
+        search.setOnFocusChangeListener((v, focused) ->
+                v.setBackgroundColor(focused ? Color.rgb(58, 92, 130) : Color.rgb(40, 49, 62)));
         LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(-1, dp(48));
         searchLp.topMargin = dp(14);
         root.addView(search, searchLp);
@@ -113,6 +117,11 @@ public final class YouCleanManagerActivity extends Activity {
         Button backup = new Button(this);
         backup.setText("Sao lưu danh sách ứng dụng (JSON)");
         backup.setTextSize(13);
+        backup.setOnFocusChangeListener((v, focused) -> {
+            v.setAlpha(focused ? 1.0f : 0.88f);
+            v.setScaleX(focused ? 1.025f : 1.0f);
+            v.setScaleY(focused ? 1.025f : 1.0f);
+        });
         backup.setOnClickListener(v -> createBackupFile());
         LinearLayout.LayoutParams backupLp = new LinearLayout.LayoutParams(-1, dp(48));
         backupLp.topMargin = dp(6);
@@ -121,6 +130,11 @@ public final class YouCleanManagerActivity extends Activity {
         Button restore = new Button(this);
         restore.setText("Nhập tệp sao lưu JSON · Kiểm tra ứng dụng thiếu");
         restore.setTextSize(13);
+        restore.setOnFocusChangeListener((v, focused) -> {
+            v.setAlpha(focused ? 1.0f : 0.88f);
+            v.setScaleX(focused ? 1.025f : 1.0f);
+            v.setScaleY(focused ? 1.025f : 1.0f);
+        });
         restore.setOnClickListener(v -> openBackupFile());
         LinearLayout.LayoutParams restoreLp = new LinearLayout.LayoutParams(-1, dp(48));
         restoreLp.topMargin = dp(4);
@@ -146,6 +160,11 @@ public final class YouCleanManagerActivity extends Activity {
         Button button = new Button(this);
         button.setText(label);
         button.setTextSize(12);
+        button.setOnFocusChangeListener((v, focused) -> {
+            v.setAlpha(focused ? 1.0f : 0.88f);
+            v.setScaleX(focused ? 1.04f : 1.0f);
+            v.setScaleY(focused ? 1.04f : 1.0f);
+        });
         button.setOnClickListener(v -> {
             selectedFilter = filter;
             renderApps();
@@ -199,6 +218,11 @@ public final class YouCleanManagerActivity extends Activity {
         row.setClickable(true);
         row.setBackgroundColor(Color.rgb(27, 34, 45));
         row.setPadding(dp(14), dp(10), dp(14), dp(10));
+        row.setOnFocusChangeListener((v, focused) -> {
+            v.setBackgroundColor(focused ? Color.rgb(58, 92, 130) : Color.rgb(27, 34, 45));
+            v.setScaleX(focused ? 1.012f : 1.0f);
+            v.setScaleY(focused ? 1.012f : 1.0f);
+        });
 
         TextView name = text(label, 17, Color.WHITE);
         name.setTypeface(null, 1);
